@@ -1,0 +1,14 @@
+{
+  "name": "json-schema-model",
+  "repo": "ericgj/json-schema-model",
+  "description": "Build models from JSON Schema correlations",
+  "version": "0.0.1",
+  "keywords": [],
+  "dependencies": {},
+  "development": {},
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": [
+    "index.js"
+  ]
+}
