@@ -1,4 +1,7 @@
+'use strict';
 
+var type = require('type')
+  , Enumerable = require('enumerable')
 
 module.exports = Builder;
 
@@ -19,42 +22,48 @@ Builder.getType(type){
 }
 
 
-Builder.prototype.schema = function(){
-  return this._schema;
-}
-
 Builder.prototype.build = function(instance){
-  var schema = this.schema()
+  var schema = this._schema
     , correlation = schema.bind(instance)
-    , t = correlation.type()
-  
-  if (!t) return new Accessor(schema).build(instance);
-  
-  var klass = Builder.getType(t)
+    , coerced = correlation.coerce()
+    , t = type(coerced.instance);
 
-  if (!klass) return new Accessor(schema).build(instance);
-
-  return new klass(schema).build(instance);
+  var klass = Builder.getType(t) || Accessor
+  return new klass(schema).build(coerced.instance);
 }
 
 
-// exposures
+///// Exposures
 
 Builder.Accessor = Accessor;
 Builder.Model = Model;
 Builder.Collection = Collection;
 
 
-//
+///// Default parser classes
 
 function Accessor(schema){
-
+  if (!(this instanceof Accessor)) return new Accessor(schema);
+  this._schema = schema;
+  this._instance = undefined;
+  return this;
 }
 
-Accessor.prototype.schema = Builder.prototype.schema;
+Accessor.prototype.schema = function(){
+  return this._schema;
+}
+
+Accessor.prototype.get = function(){
+  return this.toObject();  
+}
 
 Accessor.prototype.build = function(instance){
+  this._instance = instance;
+  return this;
+}
 
+Accessor.prototype.toObject = function(){
+  return this._instance;
 }
 
 
@@ -66,29 +75,41 @@ function Model(schema){
   return this;
 }
 
-Model.prototype.schema = Builder.prototype.schema;
-
-Model.prototype.get = function(prop){
-  return this._properties[prop];
+Model.prototype.schema = function(){
+  return this._schema;
 }
 
-Model.prototype.build = function(instance){
-  var schema = this.schema()
-  if (type(instance) !== 'object') return new Accessor(schema).build(instance);
-
-  var correlation = schema.bind(instance)
-    , default = correlation.default()
-
-  this._properties = default ? default : {};
-
-  for (var prop in instance){
-    var val = instance[prop]
-      , subschema = correlation.subschema(prop)
-    this._properties[prop] = subschema ? new Builder(subschema).build(val)
-                                       : new Accessor().build(val);
+Model.prototype.get = function(prop){
+  if (arguments.length == 0){
+    return this.toObject();
+  } else {
+    var prop = this._properties[prop]
+    return prop && prop.get();
   }
+}
 
+// note: assumes coerced instance
+Model.prototype.build = function(instance){
+  /* var schema = this.schema()
+       , corr = schema.bind(instance)
+       , coerced = corr.coerce()
+  */
+
+  this._properties = {};
+  var coerced = instance
+  if (!coerced) return this;
+  // coerced = coerced.instance;
+  for (var p in coerced){
+    var sub = corr.subschema(p)
+    this._properties[p] = Builder(sub).build(coerced[p]);
+  }
   return this;
+}
+
+Model.prototype.toObject = function(){
+  var ret = {};
+  for (var p in this._properties) ret[p] = this.get(p);
+  return ret;
 }
 
 
@@ -100,37 +121,59 @@ function Collection(schema){
   return this;
 }
 
-Collection.prototype.schema = Builder.prototype.schema;
+Enumerable(Collection.prototype);
 
-Collection.prototype.get = function(i){
-  return this._items[i];
+Collection.prototype.length = function(){ return this._items.length; }
+Collection.prototype.getModel = function(i){ return this._items[i]; }
+Collection.prototype.__iterate__ = function(){ 
+  return {
+    length: this.length, 
+    get: this.getModel   // or this.get ?
+  }
 }
 
-Collection.prototype.build = function(instance){
-  var schema = this.schema()
-  if (type(instance) !== 'array') return new Accessor(schema).build(instance);
+Collection.prototype.schema = function(){
+  return this._schema;
+}
 
-  var correlation = schema.bind(instance)
+Collection.prototype.get = function(i)  { 
+  if (arguments == 0){
+    return this.toObject();
+  } else {
+    var item = this._items[i]
+    return item && item.get(); 
+  }
+}
+
+// note: assumed coerced instance
+Collection.prototype.build = function(instance){
+  /* var schema = this.schema()
+       , corr = schema.bind(instance)
+       , coerced = corr.coerce()
+  */
 
   this._items = [];
-
-  for (var i=0;i<instance.length;++i){
-    var val = instance[i]
-      , subschema = correlation.subschema(i)
-    if (!subschema) return new Accessor().build(val);
-    
-    var subcorr = subschema.bind(val)
-      , item = subcorr.default()
-
-    if (type(item) == 'object' || type(item) == 'array'){
-      for (var prop in val) item[prop] = val[prop];
-    } else {
-      item = val || item;
-    }
-
-    this._items.push( new Builder(subschema).build(item) );
+  var coerced = instance
+  if (!coerced) return this;
+  //coerced = coerced.instance;
+  for (var i=0;i<coerced.length;++i){
+    var sub = corr.subschema(i)
+    this._items.push( Builder(sub).build(coerced[i]) );
   }
-
   return this;
+}
+
+Collection.prototype.toObject = function(){
+  var ret = [];
+  this.eachObject( function(obj){
+    ret.push( obj )
+  }
+  return ret;
+}
+
+Collection.prototype.eachObject = function(fn){
+  this.each( function(item){
+    fn(item.get());
+  })
 }
 
