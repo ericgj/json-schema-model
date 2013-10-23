@@ -6,12 +6,18 @@
   "keywords": [],
   "dependencies": {
     "component/type": "*",
-    "component/enumerable": "*"
+    "component/enumerable": "*",
+    "forbeslindesay/is-browser": "*"
   },
-  "development": {},
+  "development": {
+    "timoxley/assert": "*",  
+    "ericgj/json-schema-core": "*",
+    "ericgj/json-schema-valid": "*"
+  },
   "license": "MIT",
   "main": "index.js",
   "scripts": [
-    "index.js"
+    "index.js",
+    "builder.js"
   ]
 }

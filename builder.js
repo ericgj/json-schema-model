@@ -13,23 +13,28 @@ function Builder(schema){
 
 Builder._types = {};
 
-Builder.addType(type,klass){
+Builder.addType = function(type,klass){
   this._types[type] = klass;
 }
 
-Builder.getType(type){
+Builder.getType = function(type){
   return this._types[type];
 }
 
 
 Builder.prototype.build = function(instance){
   var schema = this._schema
-    , correlation = schema.bind(instance)
+  if (!schema) return;
+
+  var correlation = schema.bind(instance)
     , coerced = correlation.coerce()
-    , t = type(coerced.instance);
+  if (!coerced) return;
+
+  var coinst = coerced.instance
+    , t = type(coinst);
 
   var klass = Builder.getType(t) || Accessor
-  return new klass(schema).build(coerced.instance);
+  return new klass(schema).build(coinst);
 }
 
 
@@ -90,18 +95,14 @@ Model.prototype.get = function(prop){
 
 // note: assumes coerced instance
 Model.prototype.build = function(instance){
-  /* var schema = this.schema()
-       , corr = schema.bind(instance)
-       , coerced = corr.coerce()
-  */
-
   this._properties = {};
-  var coerced = instance
-  if (!coerced) return this;
-  // coerced = coerced.instance;
-  for (var p in coerced){
+  if (!instance) return this;
+  for (var p in instance){
+    var schema = this.schema()
+      , corr = schema.bind(instance)
+
     var sub = corr.subschema(p)
-    this._properties[p] = Builder(sub).build(coerced[p]);
+    this._properties[p] = Builder(sub).build(instance[p]);
   }
   return this;
 }
@@ -167,7 +168,7 @@ Collection.prototype.toObject = function(){
   var ret = [];
   this.eachObject( function(obj){
     ret.push( obj )
-  }
+  })
   return ret;
 }
 
