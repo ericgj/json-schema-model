@@ -18,12 +18,6 @@ var fixtures = {};
 describe('json-schema-model', function(){
   describe('Builder: object schema', function(){
     
-    function buildFixtureCorr(schemakey,instkey){
-      var schema = new Schema().parse(fixtures.obj.schema[schemakey])
-        , inst = fixtures.obj.instance[instkey]
-      return schema.bind(inst);
-    }
-
     function buildFixture(schemakey,instkey){
       var schema = new Schema().parse(fixtures.obj.schema[schemakey])
         , inst = fixtures.obj.instance[instkey]
@@ -61,6 +55,45 @@ describe('json-schema-model', function(){
     it('should not parse if object cannot be coerced (invalid)', function(){
       var subject = buildFixture('defaults','invalid')
       console.log('object invalid parse: %o',subject);
+      assert(!subject);
+    })
+
+  })
+
+  describe('Builder: array schema', function(){
+    
+    function buildFixture(schemakey,instkey){
+      var schema = new Schema().parse(fixtures.array.schema[schemakey])
+        , inst = fixtures.array.instance[instkey]
+      return new Builder(schema).build(inst);
+    }
+
+    it('should parse valid array', function(){ 
+      var subject = buildFixture('simple','valid')
+      console.log('array parse: %o',subject);
+      assert(subject);
+      assert(fixtures.array.instance.valid.length == 3);
+      assert.deepEqual(subject.get(0), fixtures.array.instance.valid[0]);
+      assert.deepEqual(subject.get(1), fixtures.array.instance.valid[1]);
+      assert.deepEqual(subject.get(2), fixtures.array.instance.valid[2]);
+    })
+
+    it('should parse valid array, with schema defaults', function(){
+      var subject = buildFixture('defaults','defaults')
+      console.log('array defaults parse: %o',subject);
+      assert(subject);
+      assert(fixtures.array.instance.defaults.length == 3);
+      assert(subject.length() == fixtures.array.instance.defaults.length)
+      subject.each(function(item){
+        assert(item.has('one'));
+        assert(item.has('two'));
+        assert(item.has('three'));
+      })
+    })
+
+    it('should not parse if array cannot be coerced (invalid)', function(){
+      var subject = buildFixture('defaults','invalid')
+      console.log('array invalid parse: %o',subject);
       assert(!subject);
     })
 
@@ -105,4 +138,35 @@ fixtures.obj.instance.defaults = {
   two: 2
 }
 
+
+fixtures.array = {};
+fixtures.array.schema = {};
+fixtures.array.schema.simple = {
+  type: 'array',
+  items: fixtures.obj.schema.simple
+}
+
+fixtures.array.schema.defaults = {
+  type: 'array',
+  items: fixtures.obj.schema.defaults
+}
+
+fixtures.array.instance = {};
+fixtures.array.instance.valid = [
+  { one: "1", two: 2, three: false },
+  { one: "11", two: 22, three: true },
+  { one: "111", two: 222 }
+]
+
+fixtures.array.instance.defaults = [
+  { two: 2 },
+  { one: "11", two: 22 },
+  { two: 222, three: false }
+]
+
+fixtures.array.instance.invalid = [
+  { one: "1", two: 2, three: false },
+  { one: "11", two: 22, three: true },
+  { one: 111, two: 222 }
+]
 

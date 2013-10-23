@@ -2,6 +2,7 @@
 
 var type = require('type')
   , Enumerable = require('enumerable')
+  , has = hasOwnProperty
 
 module.exports = Builder;
 
@@ -93,6 +94,10 @@ Model.prototype.get = function(prop){
   }
 }
 
+Model.prototype.has = function(prop){
+  return has.call(this._properties,prop);
+}
+
 // note: assumes coerced instance
 Model.prototype.build = function(instance){
   this._properties = {};
@@ -124,17 +129,26 @@ function Collection(schema){
 
 Enumerable(Collection.prototype);
 
-Collection.prototype.length = function(){ return this._items.length; }
-Collection.prototype.getModel = function(i){ return this._items[i]; }
+Collection.prototype.length = function(){ 
+  return this._items.length; 
+}
+Collection.prototype.getModel = function(i){ 
+  return this._items[i]; 
+}
 Collection.prototype.__iterate__ = function(){ 
+  var self = this;
   return {
-    length: this.length, 
-    get: this.getModel   // or this.get ?
+    length: self.length.bind(self), 
+    get: self.getModel.bind(self)   // or this.get ?
   }
 }
 
 Collection.prototype.schema = function(){
   return this._schema;
+}
+
+Collection.prototype.has = function(i){
+  return has.call(this._items,i);
 }
 
 Collection.prototype.get = function(i)  { 
@@ -148,18 +162,13 @@ Collection.prototype.get = function(i)  {
 
 // note: assumed coerced instance
 Collection.prototype.build = function(instance){
-  /* var schema = this.schema()
-       , corr = schema.bind(instance)
-       , coerced = corr.coerce()
-  */
-
   this._items = [];
-  var coerced = instance
-  if (!coerced) return this;
-  //coerced = coerced.instance;
-  for (var i=0;i<coerced.length;++i){
-    var sub = corr.subschema(i)
-    this._items.push( Builder(sub).build(coerced[i]) );
+  if (!instance) return this;
+  for (var i=0;i<instance.length;++i){
+    var schema = this.schema()
+      , corr = schema.bind(instance)
+      , sub = corr.subschema(i)
+    this._items.push( Builder(sub).build(instance[i]) );
   }
   return this;
 }
