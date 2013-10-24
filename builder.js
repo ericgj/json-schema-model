@@ -63,6 +63,11 @@ Accessor.prototype.get = function(){
   return this.toObject();  
 }
 
+Accessor.prototype.set = function(instance){
+  this.build(instance);
+  return this;
+}
+
 Accessor.prototype.build = function(instance){
   this._instance = instance;
   return this;
@@ -94,6 +99,16 @@ Model.prototype.get = function(prop){
   }
 }
 
+Model.prototype.set = function(prop,value){
+  if (arguments.length == 1){
+    value = prop; prop = undefined;
+    this.build(value);
+  } else {
+    this._properties[prop] = builtItem.call(this,prop,value);
+  }
+  return this;
+}
+
 Model.prototype.has = function(prop){
   return has.call(this._properties,prop);
 }
@@ -103,11 +118,7 @@ Model.prototype.build = function(instance){
   this._properties = {};
   if (!instance) return this;
   for (var p in instance){
-    var schema = this.schema()
-      , corr = schema.bind(instance)
-
-    var sub = corr.subschema(p)
-    this._properties[p] = Builder(sub).build(instance[p]);
+    this._properties[p] = builtItem.call(this,p,instance[p],instance);
   }
   return this;
 }
@@ -160,15 +171,22 @@ Collection.prototype.get = function(i)  {
   }
 }
 
+Collection.prototype.add =
+Collection.prototype.push = function(value){
+  this._items.push( 
+    builtItem.call(this,this.length(),value) 
+  );
+  return this;
+}
+
 // note: assumed coerced instance
 Collection.prototype.build = function(instance){
   this._items = [];
   if (!instance) return this;
   for (var i=0;i<instance.length;++i){
-    var schema = this.schema()
-      , corr = schema.bind(instance)
-      , sub = corr.subschema(i)
-    this._items.push( Builder(sub).build(instance[i]) );
+    this._items.push( 
+      builtItem.call(this,i,instance[i],instance) 
+    );
   }
   return this;
 }
@@ -185,5 +203,17 @@ Collection.prototype.eachObject = function(fn){
   this.each( function(item){
     fn(item.get());
   })
+}
+
+
+// private 
+
+// note used by both Model and Collection
+function builtItem(prop,value,instance){
+  instance = instance || this.toObject();
+  var schema = this.schema()
+    , corr = schema.bind(instance)
+    , sub = corr.subschema(prop)
+  return Builder(sub).build(value);
 }
 

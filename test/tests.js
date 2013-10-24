@@ -99,6 +99,71 @@ describe('json-schema-model', function(){
 
   })
 
+  describe('Model#set', function(){
+
+    function buildFixture(schemakey,instkey){
+      var schema = new Schema().parse(fixtures.modelset.schema[schemakey])
+        , inst = fixtures.modelset.instance[instkey]
+      return new Builder(schema).build(inst);
+    }
+
+    it('should set new property covered by schema', function(){
+      var subject = buildFixture('simple','simple')
+      subject.set('three', true);
+      console.log('model set new: %o', subject);
+      assert(subject.get('three') == true);
+    })
+    
+    it('should update existing property covered by schema', function(){
+      var subject = buildFixture('simple','simple')
+      subject.set('two', 3);
+      console.log('model set existing: %o', subject);
+      assert(subject.get('two') === 3);
+    })
+
+    it('should set property not covered by schema', function(){
+      var subject = buildFixture('simple','simple')
+      subject.set('four', 'imaginary');
+      console.log('model set no subschema: %o', subject);
+      assert(subject.get('four') == 'imaginary');
+    })
+
+    it('should apply default (coerce) when setting object property covered by schema', function(){
+      var subject = buildFixture('defaults','simple')
+      subject.set('four', {one: '11'} );
+      console.log('model set apply default: %o', subject);
+      assert(subject.get('four'));
+    })
+    
+    it('should set property covered by a different combination schema', function(){
+      var subject = buildFixture('combo','simple')
+      subject.set('one', { some: 'object'} );
+      console.log('model set combo: %o', subject);
+      assert.deepEqual(subject.get('one'), { some: 'object' });
+    })
+
+    it('should allow invalid set property')
+
+    it('should rebuild itself if no property specified', function(){
+      var subject = buildFixture('simple','simple')
+      subject.set({ two: 22, three: true });
+      console.log('model rebuild: %o', subject);
+      assert(subject.get('two') == 22);
+      assert(subject.get('three') == true);
+      assert(!subject.has('one'));
+    })
+    
+    it('should rebuild itself covered by a different combination schema', function(){
+      var subject = buildFixture('combotop','combo1')
+      subject.set(fixtures.modelset.instance.combo2);
+      console.log('model rebuild combo: %o', subject);
+      assert.deepEqual(subject.toObject(), fixtures.modelset.instance.combo2);
+    })
+
+    it('should allow invalid rebuild')
+
+  })
+
 })
 
 
@@ -169,4 +234,61 @@ fixtures.array.instance.invalid = [
   { one: "11", two: 22, three: true },
   { one: 111, two: 222 }
 ]
+
+
+fixtures.modelset = {};
+fixtures.modelset.schema = {};
+fixtures.modelset.schema.simple = fixtures.obj.schema.simple;
+
+fixtures.modelset.schema.defaults = {
+  type: 'object',
+  properties: {
+    one: { type: 'string' },
+    two: { type: 'number' },
+    three: { type: 'boolean' },
+    four: fixtures.obj.schema.defaults
+  }
+}
+
+fixtures.modelset.schema.combo = {
+  type: 'object',
+  properties: {
+    one: { 
+      oneOf: [
+        { type: 'string' },
+        { type: 'object' }
+      ]
+    }
+  }
+}
+
+fixtures.modelset.schema.combotop = {
+  type: 'object',
+  properties: fixtures.obj.schema.simple,
+  maxProperties: 1,
+  anyOf: [
+    { 
+      required: ["one"]
+    },
+    { 
+      required: ["two"]
+    }
+  ]
+}
+
+fixtures.modelset.instance = {};
+fixtures.modelset.instance.simple = {
+  "one": "1",
+  "two": 2
+}
+
+fixtures.modelset.instance.combo1 = {
+  "two": 2
+}
+
+fixtures.modelset.instance.combo2 = {
+  "one": "1"
+}
+
+
 
