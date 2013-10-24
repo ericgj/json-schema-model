@@ -184,6 +184,10 @@ describe('json-schema-model', function(){
 
   })
 
+  describe('Collection#add', function(){
+     it('needs some tests')
+  })
+
 })
 
 
