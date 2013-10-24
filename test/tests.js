@@ -35,6 +35,7 @@ describe('json-schema-model', function(){
       assert(subject.get('one') == fixtures.obj.instance.valid.one);
       assert(subject.get('two') == fixtures.obj.instance.valid.two);
       assert(subject.get('three') == fixtures.obj.instance.valid.three);
+      assert(subject.validate() == true);
     })
 
     it('should parse valid object, with schema defaults', function(){
@@ -47,15 +48,16 @@ describe('json-schema-model', function(){
       assert(subject.get('one') == fixtures.obj.schema.defaults['default'].one);
       assert(subject.get('two') == fixtures.obj.instance.defaults.two);
       assert(subject.get('three') == fixtures.obj.schema.defaults['default'].three);
+      assert(subject.validate() == true);
     })
 
-    /* Note: I'm not sure about this, but parsing uncoerced instances
-       seems fraught with complications, so making it impossible for now
-    */
-    it('should not parse if object cannot be coerced (invalid)', function(){
+    it('should parse if object cannot be coerced (invalid)', function(){
       var subject = buildFixture('defaults','invalid')
       console.log('object invalid parse: %o',subject);
-      assert(!subject);
+      assert(subject);
+      assert(fixtures.obj.instance.invalid.two);
+      assert.deepEqual(subject.get('two'), fixtures.obj.instance.invalid.two);
+      assert(subject.validate() == false)
     })
 
   })
@@ -76,6 +78,7 @@ describe('json-schema-model', function(){
       assert.deepEqual(subject.get(0), fixtures.array.instance.valid[0]);
       assert.deepEqual(subject.get(1), fixtures.array.instance.valid[1]);
       assert.deepEqual(subject.get(2), fixtures.array.instance.valid[2]);
+      assert(subject.validate() == true);
     })
 
     it('should parse valid array, with schema defaults', function(){
@@ -89,12 +92,16 @@ describe('json-schema-model', function(){
         assert(item.has('two'));
         assert(item.has('three'));
       })
+      assert(subject.validate() == true);
     })
 
-    it('should not parse if array cannot be coerced (invalid)', function(){
+    it('should parse if array cannot be coerced (invalid)', function(){
       var subject = buildFixture('defaults','invalid')
       console.log('array invalid parse: %o',subject);
-      assert(!subject);
+      assert(subject);
+      assert(fixtures.array.instance.invalid[2]);
+      assert.deepEqual(subject.get(2), fixtures.array.instance.invalid[2]);
+      assert(subject.validate() == false);
     })
 
   })
@@ -142,7 +149,13 @@ describe('json-schema-model', function(){
       assert.deepEqual(subject.get('one'), { some: 'object' });
     })
 
-    it('should allow invalid set property')
+    it('should allow invalid set property', function(){
+      var subject = buildFixture('simple','simple')
+      subject.set('one', 11);
+      console.log('model set invalid: %o', subject);
+      assert(subject.get('one') == 11);
+      assert(subject.validate() == false);
+    })
 
     it('should rebuild itself if no property specified', function(){
       var subject = buildFixture('simple','simple')
@@ -158,9 +171,16 @@ describe('json-schema-model', function(){
       subject.set(fixtures.modelset.instance.combo2);
       console.log('model rebuild combo: %o', subject);
       assert.deepEqual(subject.toObject(), fixtures.modelset.instance.combo2);
+      assert(subject.validate() == true);
     })
 
-    it('should allow invalid rebuild')
+    it('should allow invalid rebuild', function(){
+      var subject = buildFixture('combotop','combo1')
+      subject.set(fixtures.modelset.instance.comboinvalid);
+      console.log('model rebuild invalid: %o', subject);
+      assert.deepEqual(subject.toObject(), fixtures.modelset.instance.comboinvalid);
+      assert(subject.validate() == false);
+    })
 
   })
 
@@ -290,5 +310,9 @@ fixtures.modelset.instance.combo2 = {
   "one": "1"
 }
 
+fixtures.modelset.instance.comboinvalid = {
+  "one": "1",
+  "two": 2
+}
 
 

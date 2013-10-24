@@ -8,7 +8,7 @@ module.exports = Builder;
 
 function Builder(schema){
   if (!(this instanceof Builder)) return new Builder(schema);
-  this._schema = schema;
+  this._schema = schema || new Schema();
   return this;
 }
 
@@ -29,9 +29,9 @@ Builder.prototype.build = function(instance){
 
   var correlation = schema.bind(instance)
     , coerced = correlation.coerce()
-  if (!coerced) return;
+  // if (!coerced) return;
 
-  var coinst = coerced.instance
+  var coinst = (coerced && coerced.instance) || instance
     , t = type(coinst);
 
   var klass = Builder.getType(t) || Accessor
@@ -68,6 +68,10 @@ Accessor.prototype.set = function(instance){
   return this;
 }
 
+Accessor.prototype.validate = function(){
+  return validate.call(this);
+}
+
 Accessor.prototype.build = function(instance){
   this._instance = instance;
   return this;
@@ -81,7 +85,7 @@ Accessor.prototype.toObject = function(){
 
 function Model(schema){
   if (!(this instanceof Model)) return new Model(schema);
-  this._schema = schema;
+  this._schema = schema || new Schema();
   this._properties = {};
   return this;
 }
@@ -111,6 +115,10 @@ Model.prototype.set = function(prop,value){
 
 Model.prototype.has = function(prop){
   return has.call(this._properties,prop);
+}
+
+Model.prototype.validate = function(){
+  return validate.call(this);
 }
 
 // note: assumes coerced instance
@@ -179,6 +187,10 @@ Collection.prototype.push = function(value){
   return this;
 }
 
+Collection.prototype.validate = function(){
+  return validate.call(this);
+}
+
 // note: assumed coerced instance
 Collection.prototype.build = function(instance){
   this._items = [];
@@ -216,4 +228,12 @@ function builtItem(prop,value,instance){
     , sub = corr.subschema(prop)
   return Builder(sub).build(value);
 }
+
+function validate(){
+  var schema = this.schema()
+    , instance = this.toObject()
+    , corr = schema.bind(instance)
+  return corr && corr.validate();
+}
+
 
