@@ -2,7 +2,7 @@
   "name": "json-schema-model",
   "repo": "ericgj/json-schema-model",
   "description": "Build models from JSON Schema correlations",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "keywords": [],
   "dependencies": {
     "component/type": "*",
