@@ -2,6 +2,7 @@
 
 var type = require('type')
   , Enumerable = require('enumerable')
+  , Emitter = require('emitter')
   , has = hasOwnProperty
 
 module.exports = Builder;
@@ -52,6 +53,7 @@ function Accessor(schema){
   if (!(this instanceof Accessor)) return new Accessor(schema);
   this._schema = schema;
   this._instance = undefined;
+  this._errors = [];
   return this;
 }
 
@@ -66,6 +68,18 @@ Accessor.prototype.get = function(){
 Accessor.prototype.set = function(instance){
   this.build(instance);
   return this;
+}
+
+Accessor.prototype.errors = function(){
+  return this._errors;
+}
+
+Accessor.prototype.addError = function(msg){
+  this._errors.push(msg);
+}
+
+Accessor.prototype.resetErrors = function(){
+  this._errors = [];
 }
 
 Accessor.prototype.validate = function(){
@@ -87,11 +101,18 @@ function Model(schema){
   if (!(this instanceof Model)) return new Model(schema);
   this._schema = schema || new Schema();
   this._properties = {};
+  this._errors = [];
   return this;
 }
 
+Model.prototype = new Emitter();
+
 Model.prototype.schema = function(){
   return this._schema;
+}
+
+Model.prototype.save = function(){
+  if (this.validate()) this.emit('save');
 }
 
 Model.prototype.get = function(prop){
@@ -109,8 +130,42 @@ Model.prototype.set = function(prop,value){
     this.build(value);
   } else {
     this._properties[prop] = builtItem.call(this,prop,value);
+    this.emit('change '+prop);
   }
   return this;
+}
+
+Model.prototype.errors = function(prop){
+  if (arguments.length == 0){
+    return this._errors;
+  } else {
+    var prop = this._properties[prop];
+    return prop && prop.errors();
+  }
+}
+
+Model.prototype.addError = function(msg,prop){
+  if (arguments.length == 1){
+    this._errors.push(msg);
+  } else {
+    var prop = this._properties[prop]
+    if (prop){
+      prop.addError(msg);
+    } else { // if for some reason error prop doesn't exist
+      this.addError(msg);
+    }
+  }
+  this.emit('change errors');
+}
+
+// note resets errors down the tree
+Model.prototype.resetErrors = function(){
+  this._errors = [];
+  for (var p in this._properties){
+    var prop = this._properties[p]
+    prop.resetErrors();
+  }
+  this.emit('change errors');
 }
 
 Model.prototype.has = function(prop){
@@ -128,6 +183,7 @@ Model.prototype.build = function(instance){
   for (var p in instance){
     this._properties[p] = builtItem.call(this,p,instance[p],instance);
   }
+  this.emit('change');
   return this;
 }
 
@@ -138,13 +194,14 @@ Model.prototype.toObject = function(){
 }
 
 
-
 function Collection(schema){
   if (!(this instanceof Collection)) return new Collection(schema);
   this._schema = schema;
   this._items = [];
   return this;
 }
+
+Collection.prototype = new Emitter();
 
 Enumerable(Collection.prototype);
 
@@ -181,10 +238,43 @@ Collection.prototype.get = function(i)  {
 
 Collection.prototype.add =
 Collection.prototype.push = function(value){
-  this._items.push( 
-    builtItem.call(this,this.length(),value) 
-  );
+  var item = builtItem.call(this,this.length(),value) 
+  this._items.push(item);
+  this.emit('add',item);
   return this;
+}
+
+Collection.prototype.errors = function(i){
+  if (arguments.length == 0){
+    return this._errors;
+  } else {
+    var item = this._items[i];
+    return item && item.errors();
+  }
+}
+
+Collection.prototype.addError = function(msg,i){
+  if (arguments.length == 1){
+    this._errors.push(msg);
+  } else {
+    var item = this._items[i]
+    if (item){
+      item.addError(msg);
+    } else { // if for some reason error index doesn't exist
+      this.addError(msg);
+    }
+  }
+  this.emit('change errors');
+}
+
+// note resets errors down the tree
+Collection.prototype.resetErrors = function(){
+  this._errors = [];
+  for (var i=0;i<this._items.length;++i){
+    var item = this._items[i]
+    item.resetErrors();
+  }
+  this.emit('change errors');
 }
 
 Collection.prototype.validate = function(){
@@ -196,10 +286,11 @@ Collection.prototype.build = function(instance){
   this._items = [];
   if (!instance) return this;
   for (var i=0;i<instance.length;++i){
-    this._items.push( 
-      builtItem.call(this,i,instance[i],instance) 
-    );
+    var item = builtItem.call(this,i,instance[i],instance) 
+    this._items.push(item);
+    this.emit('add', item);
   }
+  this.emit('change');
   return this;
 }
 
@@ -229,11 +320,39 @@ function builtItem(prop,value,instance){
   return Builder(sub).build(value);
 }
 
+// note returns true if validate not defined
 function validate(){
+  var model = this
+    , corr = toCorrelation.call(this)
+  this.resetErrors();
+  corr.once('error', function(err){
+    attachError.call(model,err);
+  });
+  return !corr.validate || corr.validate();
+}
+
+function toCorrelation(){
   var schema = this.schema()
     , instance = this.toObject()
     , corr = schema.bind(instance)
-  return corr && corr.validate();
+  return corr
 }
 
+function attachError(err){
+  var tree = err.tree
+    , asserts = tree.assertions()
+    , branches = tree.branches()
+  for (var i=0;i<asserts.length;++i){
+    this.addError(asserts[i].message);
+  }
+  for (var i=0;i<branches.length;++i){
+    var subtree = branches[i]
+      , subasserts = subtree.assertions()
+      for (var j=0;j<subasserts.length;++j){
+        var path = subasserts[j].instancePath
+          , prop = (path == undefined) ? undefined : path.split('/')[0]
+        this.addError(subasserts[j].message, prop);
+      }
+  }
+}
 

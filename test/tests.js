@@ -15,17 +15,17 @@ var fixtures = {};
 
 ///////////////////////////////////
 
+function buildFixture(type,schemakey,instkey){
+  var schema = new Schema().parse(fixtures[type].schema[schemakey])
+    , inst = fixtures[type].instance[instkey]
+  return new Builder(schema).build(inst);
+}
+
 describe('json-schema-model', function(){
   describe('Builder: object schema', function(){
     
-    function buildFixture(schemakey,instkey){
-      var schema = new Schema().parse(fixtures.obj.schema[schemakey])
-        , inst = fixtures.obj.instance[instkey]
-      return new Builder(schema).build(inst);
-    }
-
     it('should parse valid object', function(){ 
-      var subject = buildFixture('simple','valid')
+      var subject = buildFixture('obj','simple','valid')
       console.log('object parse: %o',subject);
       assert(subject);
       assert(subject.get('one'));
@@ -39,7 +39,7 @@ describe('json-schema-model', function(){
     })
 
     it('should parse valid object, with schema defaults', function(){
-      var subject = buildFixture('defaults','defaults')
+      var subject = buildFixture('obj','defaults','defaults')
       console.log('object defaults parse: %o',subject);
       assert(subject);
       assert(has.call(fixtures.obj.schema.defaults['default'],'one'));
@@ -52,7 +52,7 @@ describe('json-schema-model', function(){
     })
 
     it('should parse if object cannot be coerced (invalid)', function(){
-      var subject = buildFixture('defaults','invalid')
+      var subject = buildFixture('obj','defaults','invalid')
       console.log('object invalid parse: %o',subject);
       assert(subject);
       assert(fixtures.obj.instance.invalid.two);
@@ -64,14 +64,8 @@ describe('json-schema-model', function(){
 
   describe('Builder: array schema', function(){
     
-    function buildFixture(schemakey,instkey){
-      var schema = new Schema().parse(fixtures.array.schema[schemakey])
-        , inst = fixtures.array.instance[instkey]
-      return new Builder(schema).build(inst);
-    }
-
     it('should parse valid array', function(){ 
-      var subject = buildFixture('simple','valid')
+      var subject = buildFixture('array','simple','valid')
       console.log('array parse: %o',subject);
       assert(subject);
       assert(fixtures.array.instance.valid.length == 3);
@@ -82,7 +76,7 @@ describe('json-schema-model', function(){
     })
 
     it('should parse valid array, with schema defaults', function(){
-      var subject = buildFixture('defaults','defaults')
+      var subject = buildFixture('array','defaults','defaults')
       console.log('array defaults parse: %o',subject);
       assert(subject);
       assert(fixtures.array.instance.defaults.length == 3);
@@ -96,7 +90,7 @@ describe('json-schema-model', function(){
     })
 
     it('should parse if array cannot be coerced (invalid)', function(){
-      var subject = buildFixture('defaults','invalid')
+      var subject = buildFixture('array','defaults','invalid')
       console.log('array invalid parse: %o',subject);
       assert(subject);
       assert(fixtures.array.instance.invalid[2]);
@@ -108,49 +102,43 @@ describe('json-schema-model', function(){
 
   describe('Model#set', function(){
 
-    function buildFixture(schemakey,instkey){
-      var schema = new Schema().parse(fixtures.modelset.schema[schemakey])
-        , inst = fixtures.modelset.instance[instkey]
-      return new Builder(schema).build(inst);
-    }
-
     it('should set new property covered by schema', function(){
-      var subject = buildFixture('simple','simple')
+      var subject = buildFixture('modelset','simple','simple')
       subject.set('three', true);
       console.log('model set new: %o', subject);
       assert(subject.get('three') == true);
     })
     
     it('should update existing property covered by schema', function(){
-      var subject = buildFixture('simple','simple')
+      var subject = buildFixture('modelset','simple','simple')
       subject.set('two', 3);
       console.log('model set existing: %o', subject);
       assert(subject.get('two') === 3);
     })
 
     it('should set property not covered by schema', function(){
-      var subject = buildFixture('simple','simple')
+      var subject = buildFixture('modelset','simple','simple')
       subject.set('four', 'imaginary');
       console.log('model set no subschema: %o', subject);
       assert(subject.get('four') == 'imaginary');
     })
 
     it('should apply default (coerce) when setting object property covered by schema', function(){
-      var subject = buildFixture('defaults','simple')
+      var subject = buildFixture('modelset','defaults','simple')
       subject.set('four', {one: '11'} );
       console.log('model set apply default: %o', subject);
       assert(subject.get('four'));
     })
     
     it('should set property covered by a different combination schema', function(){
-      var subject = buildFixture('combo','simple')
+      var subject = buildFixture('modelset','combo','simple')
       subject.set('one', { some: 'object'} );
       console.log('model set combo: %o', subject);
       assert.deepEqual(subject.get('one'), { some: 'object' });
     })
 
     it('should allow invalid set property', function(){
-      var subject = buildFixture('simple','simple')
+      var subject = buildFixture('modelset','simple','simple')
       subject.set('one', 11);
       console.log('model set invalid: %o', subject);
       assert(subject.get('one') == 11);
@@ -158,7 +146,7 @@ describe('json-schema-model', function(){
     })
 
     it('should rebuild itself if no property specified', function(){
-      var subject = buildFixture('simple','simple')
+      var subject = buildFixture('modelset','simple','simple')
       subject.set({ two: 22, three: true });
       console.log('model rebuild: %o', subject);
       assert(subject.get('two') == 22);
@@ -167,7 +155,7 @@ describe('json-schema-model', function(){
     })
     
     it('should rebuild itself covered by a different combination schema', function(){
-      var subject = buildFixture('combotop','combo1')
+      var subject = buildFixture('modelset','combotop','combo1')
       subject.set(fixtures.modelset.instance.combo2);
       console.log('model rebuild combo: %o', subject);
       assert.deepEqual(subject.toObject(), fixtures.modelset.instance.combo2);
@@ -175,7 +163,7 @@ describe('json-schema-model', function(){
     })
 
     it('should allow invalid rebuild', function(){
-      var subject = buildFixture('combotop','combo1')
+      var subject = buildFixture('modelset','combotop','combo1')
       subject.set(fixtures.modelset.instance.comboinvalid);
       console.log('model rebuild invalid: %o', subject);
       assert.deepEqual(subject.toObject(), fixtures.modelset.instance.comboinvalid);
@@ -186,6 +174,56 @@ describe('json-schema-model', function(){
 
   describe('Collection#add', function(){
      it('needs some tests')
+  })
+
+  describe('Model#validate', function(){
+
+    it('should return true when valid', function(){
+      var subject = buildFixture('validate','simple','valid')
+      assert(subject.validate() == true);
+    })
+
+    it('should not have errors when valid', function(){
+      var subject = buildFixture('validate','simple','valid')
+      subject.validate();
+      assert(subject.errors().length == 0);
+    })
+
+    it('should have errors when called a second time and not valid', function(){
+      var subject = buildFixture('validate','simple','valid')
+      subject.validate();
+      subject.set(fixtures.validate.instance.invalid);
+      assert(subject.validate() == false);
+      assert(subject.errors().length > 0);
+    })
+
+    it('should return false when not valid', function(){
+      var subject = buildFixture('validate','simple','invalid')
+      assert(subject.validate() == false);
+    })
+
+    it('should have errors when not valid', function(){
+      var subject = buildFixture('validate','simple','invalid')
+      subject.validate();
+      console.log('model validate invalid errors: %o',subject.errors());
+      assert(subject.errors().length > 0);
+    })
+    
+    it('should have property error when property not valid', function(){
+      var subject = buildFixture('validate','simple','invalid')
+      subject.validate();
+      console.log('model validate invalid property errors: %o',subject.errors('two'));
+      assert(subject.errors('two').length > 0);
+    })
+
+    it('should not have errors when called a second time and valid', function(){
+      var subject = buildFixture('validate','simple','invalid')
+      subject.validate();
+      subject.set(fixtures.validate.instance.valid);
+      assert(subject.validate() == true);
+      assert(subject.errors().length == 0);
+    })
+
   })
 
 })
@@ -318,5 +356,15 @@ fixtures.modelset.instance.comboinvalid = {
   "one": "1",
   "two": 2
 }
+
+
+
+fixtures.validate = {};
+fixtures.validate.schema = {};
+fixtures.validate.schema.simple = fixtures.obj.schema.simple;
+
+fixtures.validate.instance = {};
+fixtures.validate.instance.valid = fixtures.obj.instance.valid;
+fixtures.validate.instance.invalid = fixtures.obj.instance.invalid;
 
 
