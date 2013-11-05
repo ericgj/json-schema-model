@@ -192,7 +192,7 @@ describe('json-schema-model', function(){
     it('should have errors when called a second time and not valid', function(){
       var subject = buildFixture('validate','simple','valid')
       subject.validate();
-      subject.set(fixtures.validate.instance.invalid);
+      subject.set('one', 111); // make invalid
       assert(subject.validate() == false);
       assert(subject.errors().length > 0);
     })
@@ -219,7 +219,7 @@ describe('json-schema-model', function(){
     it('should not have errors when called a second time and valid', function(){
       var subject = buildFixture('validate','simple','invalid')
       subject.validate();
-      subject.set(fixtures.validate.instance.valid);
+      subject.set('two',22);  // make valid
       assert(subject.validate() == true);
       assert(subject.errors().length == 0);
     })
@@ -270,7 +270,7 @@ describe('json-schema-model', function(){
     it('should have errors when called a second time and not valid', function(){
       var subject = buildFixture('validate','array','arrayvalid')
       subject.validate();
-      subject.build(fixtures.validate.instance.arrayinvalid);
+      subject.add(fixtures.validate.instance.invalid); // make invalid
       assert(subject.validate() == false);
       assert(subject.errors().length > 0);
     })
@@ -297,7 +297,7 @@ describe('json-schema-model', function(){
     it('should not have errors when called a second time and valid', function(){
       var subject = buildFixture('validate','array','arrayinvalid')
       subject.validate();
-      subject.build(fixtures.validate.instance.arrayvalid);
+      subject.remove(2);  // make valid
       assert(subject.validate() == true);
       assert(subject.errors().length == 0);
     })

@@ -244,6 +244,13 @@ Collection.prototype.push = function(value){
   return this;
 }
 
+Collection.prototype.remove = function(i){
+  var item = this._items[i];
+  if (item) this._items.splice(i,1);
+  this.emit('remove',item);
+  return this;
+}
+
 Collection.prototype.errors = function(i){
   if (arguments.length == 0){
     return this._errors;
