@@ -224,6 +224,27 @@ describe('json-schema-model', function(){
       assert(subject.errors().length == 0);
     })
 
+    it('should emit change errors event once for errors reset, when valid', function(){
+      var subject = buildFixture('validate','simple','valid')
+        , count = 0
+      subject.on('change errors', function(){
+        count++;
+        console.log('model emit change valid ' + count);
+      });
+      subject.validate();
+      assert(count == 1);
+    })
+
+    it('should emit change errors event for each error + 1 for errors reset, when not valid', function(){
+      var subject = buildFixture('validate','simple','invalid')
+        , count = 0
+      subject.on('change errors', function(){
+        count++;
+        console.log('model emit change invalid ' + count);
+      });
+      subject.validate();
+      assert(count == 3);
+    })
   })
 
 })
