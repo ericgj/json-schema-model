@@ -224,6 +224,13 @@ describe('json-schema-model', function(){
       assert(subject.errors().length == 0);
     })
 
+    it('should not have property errors when called a second time and valid', function(){
+      var subject = buildFixture('validate','simple','invalid')
+      subject.validate();
+      subject.set(fixtures.validate.instance.valid);
+      assert(subject.errors('two').length == 0);
+    })
+
     it('should emit change errors event once for errors reset, when valid', function(){
       var subject = buildFixture('validate','simple','valid')
         , count = 0
@@ -247,6 +254,63 @@ describe('json-schema-model', function(){
     })
   })
 
+  describe('Collection#validate', function(){
+
+    it('should return true when valid', function(){
+      var subject = buildFixture('validate','array','arrayvalid')
+      assert(subject.validate() == true);
+    })
+
+    it('should not have errors when valid', function(){
+      var subject = buildFixture('validate','array','arrayvalid')
+      subject.validate();
+      assert(subject.errors().length == 0);
+    })
+
+    it('should have errors when called a second time and not valid', function(){
+      var subject = buildFixture('validate','array','arrayvalid')
+      subject.validate();
+      subject.build(fixtures.validate.instance.arrayinvalid);
+      assert(subject.validate() == false);
+      assert(subject.errors().length > 0);
+    })
+
+    it('should return false when not valid', function(){
+      var subject = buildFixture('validate','array','arrayinvalid')
+      assert(subject.validate() == false);
+    })
+
+    it('should have errors when not valid', function(){
+      var subject = buildFixture('validate','array','invalid')
+      subject.validate();
+      console.log('collection validate invalid errors: %o',subject.errors());
+      assert(subject.errors().length > 0);
+    })
+    
+    it('should have item error when property not valid', function(){
+      var subject = buildFixture('validate','array','arrayinvalid')
+      subject.validate();
+      console.log('collection validate invalid item errors: %o',subject.errors(2));
+      assert(subject.errors(2).length > 0);
+    })
+
+    it('should not have errors when called a second time and valid', function(){
+      var subject = buildFixture('validate','array','arrayinvalid')
+      subject.validate();
+      subject.build(fixtures.validate.instance.arrayvalid);
+      assert(subject.validate() == true);
+      assert(subject.errors().length == 0);
+    })
+
+    it('should not have item errors when called a second time and valid', function(){
+      var subject = buildFixture('validate','array','arrayinvalid')
+      subject.validate();
+      subject.build(fixtures.validate.instance.arrayvalid);
+      assert(subject.errors(2).length == 0);
+    })
+
+   
+  })
 })
 
 
@@ -387,5 +451,9 @@ fixtures.validate.schema.simple = fixtures.obj.schema.simple;
 fixtures.validate.instance = {};
 fixtures.validate.instance.valid = fixtures.obj.instance.valid;
 fixtures.validate.instance.invalid = fixtures.obj.instance.invalid;
+
+fixtures.validate.schema.array = fixtures.array.schema.simple;
+fixtures.validate.instance.arrayvalid = fixtures.array.instance.valid ;
+fixtures.validate.instance.arrayinvalid = fixtures.array.instance.invalid ;
 
 
