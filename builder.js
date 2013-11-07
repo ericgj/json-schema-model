@@ -105,6 +105,7 @@ function Model(schema){
   return this;
 }
 
+Emitter(Model);
 Model.prototype = new Emitter();
 
 Model.prototype.schema = function(){
@@ -129,8 +130,12 @@ Model.prototype.set = function(prop,value){
     value = prop; prop = undefined;
     this.build(value);
   } else {
+    var prev = this._properties[prop]
     this._properties[prop] = builtItem.call(this,prop,value);
-    this.emit('change '+prop);
+    Model.emit('change', this, prop, value, prev);
+    Model.emit('change '+prop, this, value, prev);
+    this.emit('change', prop, value, prev);
+    this.emit('change '+prop, value, prev);
   }
   return this;
 }
@@ -183,6 +188,7 @@ Model.prototype.build = function(instance){
   for (var p in instance){
     this._properties[p] = builtItem.call(this,p,instance[p],instance);
   }
+  Model.emit('change', this);
   this.emit('change');
   return this;
 }
@@ -201,6 +207,7 @@ function Collection(schema){
   return this;
 }
 
+Emitter(Collection);
 Collection.prototype = new Emitter();
 
 Enumerable(Collection.prototype);
@@ -239,15 +246,17 @@ Collection.prototype.get = function(i)  {
 Collection.prototype.add =
 Collection.prototype.push = function(value){
   var item = builtItem.call(this,this.length(),value) 
-  this._items.push(item);
-  this.emit('add',item);
+    , len = this._items.push(item)
+  Collection.emit('add', this, len - 1, item);
+  this.emit('add', len - 1, item);
   return this;
 }
 
 Collection.prototype.remove = function(i){
   var item = this._items[i];
   if (item) this._items.splice(i,1);
-  this.emit('remove',item);
+  Collection.emit('remove', this, i, item);
+  this.emit('remove', i, item);
   return this;
 }
 
@@ -297,6 +306,7 @@ Collection.prototype.build = function(instance){
     this._items.push(item);
     this.emit('add', item);
   }
+  Collection.emit('change',this);
   this.emit('change');
   return this;
 }
