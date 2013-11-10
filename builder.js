@@ -360,7 +360,7 @@ function attachError(err){
     , asserts = tree.assertions()
     , branches = tree.branches()
   for (var i=0;i<asserts.length;++i){
-    this.addError(asserts[i].message);
+    this.addError(asserts[i]);
   }
   for (var i=0;i<branches.length;++i){
     var subtree = branches[i]
@@ -368,7 +368,7 @@ function attachError(err){
       for (var j=0;j<subasserts.length;++j){
         var path = subasserts[j].instancePath
           , prop = (path == undefined) ? undefined : path.split('/')[0]
-        this.addError(subasserts[j].message, prop);
+        this.addError(subasserts[j], prop);
       }
   }
 }
