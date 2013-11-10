@@ -213,7 +213,7 @@ describe('json-schema-model', function(){
       var subject = buildFixture('validate','simple','invalid')
       subject.validate();
       console.log('model validate invalid property errors: %o',subject.errors('two'));
-      assert(subject.errors('two').length > 0);
+      assert(subject.errors().get('two').length > 0);
     })
 
     it('should not have errors when called a second time and valid', function(){
@@ -228,30 +228,46 @@ describe('json-schema-model', function(){
       var subject = buildFixture('validate','simple','invalid')
       subject.validate();
       subject.set(fixtures.validate.instance.valid);
-      assert(subject.errors('two').length == 0);
+      subject.validate();
+      assert(subject.errors().get('two').length == 0);
     })
 
-    it('should emit change errors event once for errors reset, when valid', function(){
-      var subject = buildFixture('validate','simple','valid')
+    it('errors object should emit change event once (for reset), when valid', function(){
+      var model = buildFixture('validate','simple','valid')
         , count = 0
-      subject.on('change errors', function(){
+        , subject = model.errors()
+      subject.on('change', function(){
         count++;
-        console.log('model emit change valid ' + count);
+        console.log('model errors object emit change valid ' + count);
       });
-      subject.validate();
+      model.validate();
       assert(count == 1);
     })
 
-    it('should emit change errors event for each error + 1 for errors reset, when not valid', function(){
-      var subject = buildFixture('validate','simple','invalid')
+    it('errors object should emit change event for each error + 1 for reset, when not valid', function(){
+      var model = buildFixture('validate','simple','invalid')
         , count = 0
-      subject.on('change errors', function(){
+        , subject = model.errors()
+      subject.on('change', function(){
         count++;
-        console.log('model emit change invalid ' + count);
+        console.log('model errors object emit change invalid ' + count);
       });
-      subject.validate();
+      model.validate();
       assert(count == 3);
     })
+
+    it('errors object should emit change property event for each property error, when not valid', function(){
+      var model = buildFixture('validate','simple','invalid')
+        , count = 0
+        , subject = model.errors()
+      subject.on('change two', function(){
+        count++;
+        console.log('model errors object emit change two invalid ' + count);
+      });
+      model.validate();
+      assert(count == 1);
+    })
+
   })
 
   describe('Collection#validate', function(){
@@ -291,7 +307,7 @@ describe('json-schema-model', function(){
       var subject = buildFixture('validate','array','arrayinvalid')
       subject.validate();
       console.log('collection validate invalid item errors: %o',subject.errors(2));
-      assert(subject.errors(2).length > 0);
+      assert(subject.errors().get(2).length > 0);
     })
 
     it('should not have errors when called a second time and valid', function(){
@@ -306,7 +322,8 @@ describe('json-schema-model', function(){
       var subject = buildFixture('validate','array','arrayinvalid')
       subject.validate();
       subject.build(fixtures.validate.instance.arrayvalid);
-      assert(subject.errors(2).length == 0);
+      subject.validate();
+      assert(subject.errors().get(2).length == 0);
     })
 
    

@@ -12,6 +12,9 @@
   },
   "development": {
     "timoxley/assert": "*",  
+    "component/reactive": "*",
+    "component/domify": "*",
+    "yields/empty": "*",
     "ericgj/json-schema-core": "*",
     "ericgj/json-schema-valid": "*"
   },

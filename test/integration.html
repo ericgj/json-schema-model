@@ -1,0 +1,113 @@
+<html>
+  <head>
+    <title>json-schema-model integration tests</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <style>
+      h1 {
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="contactForm"></div>
+
+    <script id="formTemplate" type="text/plain">
+      <form nosubmit>
+        <fieldset>
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" value="{name || ''}" on-change="update" />
+          <span class="error" data-errors="name"></span>
+          <label for="email">Email</label>
+          <input type="text" id="email" name="email" value="{email || ''}" on-change="update" />
+          <span class="error" data-errors="email"></span>
+        </fieldset>
+      </form>
+    </script>
+
+    <script id="errTemplate" type="text/plain">
+        <div>{message}</div>
+    </script>
+
+    <script src="../build/build.js"></script>
+    <script>
+      window.jsonSchemas = {};
+    </script>
+    <script src="./integration/schemas/contact.js"></script>
+    <script>
+      var reactive = require('reactive')
+        , domify = require('domify')
+        , emptyEl = require('empty')
+        , Builder = require('json-schema-model')
+        , core = require('json-schema-core')
+        , valid = require('json-schema-valid')
+        , Schema = core.Schema
+
+      Schema.use(valid);
+
+      // these would be require'd in a real example
+      var formTmpl = document.getElementById('formTemplate').innerHTML
+        , errTmpl  = document.getElementById('errTemplate').innerHTML
+
+      function View(model,tmpl,subtmpl){
+        if (!(this instanceof View)) return new View(model,tmpl,subtmpl);
+        this.model = model;
+        this.el = domify(tmpl);
+        this.errors = model.errors();
+        this.errorTemplate = subtmpl;
+        var view = reactive(this.el, model, this);
+        setErrorViews.call(this);
+        return this;
+      }
+
+     
+      View.prototype.hasErrors = function(name){
+        return (name ? this.errors.get(name).length > 0
+                     : this.errors.length > 0
+               );
+      }
+
+      View.prototype.update = function(e){ 
+        var target = e.target, name = target.name, val = target.value
+        this.model.set(name,val);
+        this.model.validate();
+      }
+
+      // private
+      function setErrorViews(){
+        var els = this.el.querySelectorAll('[data-errors]');
+        for (var i=0;i<els.length;++i){
+          var el = els[i]
+            , prop = el.getAttribute('data-errors')
+            , tmpl = this.errorTemplate
+          var view = reactive(el, this.errors);
+          view.bind('data-errors', function(subel,name){
+            this.change( function(){
+              emptyEl(subel);
+              var errs = this.value(name);
+              for (var i=0;i<errs.length;++i){
+                var subview = reactive( domify(tmpl), errs[i] );
+                subel.appendChild(subview.el);
+              }
+            });
+          });
+        }
+      }
+
+
+      var schema = new Schema().parse(window.jsonSchemas['contact'])
+        , contact = Builder(schema).build({name: 'Eric'})
+        , errs = contact.errors()
+
+      contact.on('change', function(){ console.log('contact change'); });
+      contact.on('change name', function(val){ console.log('contact change name %o', val); });
+      errs.on('change', function(){ console.log('errors change %o',errs); } );
+      errs.on('change name', function(){ console.log('errors change name %o', errs.get('name')); } );
+
+      var view = View(contact,formTmpl,errTmpl);
+
+      var parentEl = document.getElementById('contactForm')
+      parentEl.appendChild(view.el);
+
+    </script>
+  </body>
+</html>

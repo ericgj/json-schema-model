@@ -45,7 +45,7 @@ Builder.prototype.build = function(instance){
 Builder.Accessor = Accessor;
 Builder.Model = Model;
 Builder.Collection = Collection;
-
+Builder.Errors = Errors;
 
 ///// Default parser classes
 
@@ -53,7 +53,6 @@ function Accessor(schema){
   if (!(this instanceof Accessor)) return new Accessor(schema);
   this._schema = schema;
   this._instance = undefined;
-  this._errors = [];
   return this;
 }
 
@@ -68,18 +67,6 @@ Accessor.prototype.get = function(){
 Accessor.prototype.set = function(instance){
   this.build(instance);
   return this;
-}
-
-Accessor.prototype.errors = function(){
-  return this._errors;
-}
-
-Accessor.prototype.addError = function(msg){
-  this._errors.push(msg);
-}
-
-Accessor.prototype.resetErrors = function(){
-  this._errors = [];
 }
 
 Accessor.prototype.validate = function(){
@@ -101,7 +88,7 @@ function Model(schema){
   if (!(this instanceof Model)) return new Model(schema);
   this._schema = schema || new Schema();
   this._properties = {};
-  this._errors = [];
+  this._errors = new Errors();
   return this;
 }
 
@@ -140,37 +127,16 @@ Model.prototype.set = function(prop,value){
   return this;
 }
 
-Model.prototype.errors = function(prop){
-  if (arguments.length == 0){
-    return this._errors;
-  } else {
-    var prop = this._properties[prop];
-    return prop && prop.errors();
-  }
+Model.prototype.errors = function(){
+  return this._errors;
 }
 
-Model.prototype.addError = function(msg,prop){
-  if (arguments.length == 1){
-    this._errors.push(msg);
-  } else {
-    var prop = this._properties[prop]
-    if (prop){
-      prop.addError(msg);
-    } else { // if for some reason error prop doesn't exist
-      this.addError(msg);
-    }
-  }
-  this.emit('change errors');
+Model.prototype.addError = function(err,prop){
+  this._errors.add(err,prop);
 }
 
-// note resets errors down the tree
 Model.prototype.resetErrors = function(){
-  this._errors = [];
-  for (var p in this._properties){
-    var prop = this._properties[p]
-    prop.resetErrors();
-  }
-  this.emit('change errors');
+  this._errors.reset();
 }
 
 Model.prototype.has = function(prop){
@@ -200,10 +166,12 @@ Model.prototype.toObject = function(){
 }
 
 
+
 function Collection(schema){
   if (!(this instanceof Collection)) return new Collection(schema);
-  this._schema = schema;
+  this._schema = schema || new Schema();
   this._items = [];
+  this._errors = new Errors();
   return this;
 }
 
@@ -260,37 +228,16 @@ Collection.prototype.remove = function(i){
   return this;
 }
 
-Collection.prototype.errors = function(i){
-  if (arguments.length == 0){
-    return this._errors;
-  } else {
-    var item = this._items[i];
-    return item && item.errors();
-  }
+Collection.prototype.errors = function(){
+  return this._errors;
 }
 
-Collection.prototype.addError = function(msg,i){
-  if (arguments.length == 1){
-    this._errors.push(msg);
-  } else {
-    var item = this._items[i]
-    if (item){
-      item.addError(msg);
-    } else { // if for some reason error index doesn't exist
-      this.addError(msg);
-    }
-  }
-  this.emit('change errors');
+Collection.prototype.addError = function(err,i){
+  this._errors.add(err,i);
 }
 
-// note resets errors down the tree
 Collection.prototype.resetErrors = function(){
-  this._errors = [];
-  for (var i=0;i<this._items.length;++i){
-    var item = this._items[i]
-    item.resetErrors();
-  }
-  this.emit('change errors');
+  this._errors.reset();
 }
 
 Collection.prototype.validate = function(){
@@ -323,6 +270,61 @@ Collection.prototype.eachObject = function(fn){
   this.each( function(item){
     fn(item.get());
   })
+}
+
+
+function Errors(){
+  if (!(this instanceof Errors)) return new Errors();
+  this._errs = [];
+  this._properrs = {};
+  this.reset();
+  return this;
+}
+
+Emitter(Errors);
+Errors.prototype = new Emitter();
+
+Errors.prototype.set =
+Errors.prototype.add = function(err,prop){
+  if (prop === undefined){
+    this._errs.push(err);
+    this.length++;
+  } else {
+    (this._properrs[prop] = this._properrs[prop] || []).push(err);
+    this.length++;
+  }
+  Errors.emit('change', this, prop);
+  this.emit('change',prop);
+  if (prop !== undefined) {
+    Errors.emit('change '+prop, this);
+    this.emit('change '+prop);
+  }
+}
+
+Errors.prototype.get = function(prop){
+  if (prop === undefined){
+    return this._errs;
+  } else {
+    return (this._properrs[prop] || []);
+  }
+}
+
+Errors.prototype.remove = function(prop){
+  delete this._properrs[prop];
+  this.length--;
+  Errors.emit('change '+prop, this);
+  this.emit('change '+prop);
+}
+
+Errors.prototype.reset = function(){
+  for (var prop in this._properrs){
+    this.remove(prop);
+  }
+  this._errs = [];
+  this._properrs = {};
+  this.length = 0;
+  Errors.emit('change', this);
+  this.emit('change');
 }
 
 
