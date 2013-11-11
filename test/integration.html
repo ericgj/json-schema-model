@@ -47,6 +47,7 @@
     </style>
   </head>
   <body>
+    <div id="flash"></div>
     <div id="contactForm"></div>
 
     <script id="formTemplate" type="text/plain">
@@ -125,7 +126,7 @@
         view.bind('data-errors', function(el,name){
           this.change( function(){
             emptyEl(el);
-            var errs = this.value(name);
+            var errs = name ? this.value(name) : this.model.errors();
             if (!errs) return;
             for (var i=0;i<errs.length;++i){
               var subview = reactive( domify(errTmpl), errs[i] );
@@ -162,6 +163,7 @@
       var view = View(contact,formTmpl,errTmpl);
 
       // this pretty much sucks
+      ErrorView(contact,errTmpl,undefined, document.getElementById('flash'));
       ErrorView(contact,errTmpl,'name', view.el.querySelector('#name + .error'));
       ErrorView(contact,errTmpl,'email', view.el.querySelector('#email + .error'));
 
