@@ -47,21 +47,21 @@
     </style>
   </head>
   <body>
-    <div id="flash"></div>
     <div id="contactForm"></div>
 
     <script id="formTemplate" type="text/plain">
+      <div id="flash" data-append="errorView"></div>
       <form nosubmit>
         <fieldset>
           <div>
             <label for="name">Name</label>
             <input type="text" id="name" name="name" value="{name || ''}" on-change="update" />
-            <span class="error"></span>
+            <span class="error" data-append="nameErrorView"></span>
           </div>
           <div>
             <label for="email">Email</label>
             <input type="text" id="email" name="email" value="{email || ''}" on-change="update" />
-            <span class="error"></span>
+            <span class="error" data-append="emailErrorView"></span>
           </div>
         </fieldset>
       </form>
@@ -93,10 +93,12 @@
       var formTmpl = document.getElementById('formTemplate').innerHTML
         , errTmpl  = document.getElementById('errTemplate').innerHTML
 
-      function View(model,tmpl){
-        if (!(this instanceof View)) return new View(model,tmpl);
+      function View(model,tmpl,errTmpl){
+        if (!(this instanceof View)) return new View(model,tmpl,errTmpl);
         this.model = model;
         this.el = domify(tmpl);
+        this.errorTemplate = errTmpl;
+        generateErrorViews.call(this);
         var view = reactive(this.el, model, this);
         return this;
       }
@@ -112,10 +114,25 @@
           target.setCustomValidity("");
         }
       }
+
+      function generateErrorView(prop){
+        var view = ErrorView(this.model, this.errorTemplate, prop);
+        return view.el;
+      }
+
+      // this is some funky hoops reactive puts you through
+      // better to use the schema properties here though
+      function generateErrorViews(){
+        var instance = this.model.get();
+        this['errorView'] = generateErrorView.call(this);
+        for (var p in instance){
+          this[p + 'ErrorView'] = generateErrorView.call(this,p);
+        }
+      }
       
-      function ErrorView(model,tmpl,prop,parent){
+      function ErrorView(model,tmpl,prop){
         if (!(this instanceof ErrorView)) 
-          return new ErrorView(model,tmpl,prop,parent);
+          return new ErrorView(model,tmpl,prop);
         this.model = model;
         this.el = domify(tmpl);
         this.errorProperty = prop;
@@ -134,7 +151,6 @@
             }
           });
         });
-        if (parent) parent.appendChild(view.el);
         return this;
       }
 
@@ -154,18 +170,13 @@
 
 
       var schema = new Schema().parse(window.jsonSchemas['contact'])
-        , contact = Builder(schema).build({name: 'Eric'})
+        , contact = Builder(schema).build({name: 'Eric', email: undefined })
 
       contact.on('change', function(){ console.log('contact change'); });
       contact.on('change name', function(val){ console.log('contact change name %o', val); });
       contact.on('validated', function(){ console.log('contact validated'); });
 
       var view = View(contact,formTmpl,errTmpl);
-
-      // this pretty much sucks
-      ErrorView(contact,errTmpl,undefined, document.getElementById('flash'));
-      ErrorView(contact,errTmpl,'name', view.el.querySelector('#name + .error'));
-      ErrorView(contact,errTmpl,'email', view.el.querySelector('#email + .error'));
 
       var parentEl = document.getElementById('contactForm')
       parentEl.appendChild(view.el);
