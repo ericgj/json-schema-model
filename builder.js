@@ -87,6 +87,7 @@ Accessor.prototype.validate = function(){
 }
 
 Accessor.prototype.build = function(instance){
+  this.resetErrors();
   this._instance = instance;
   return this;
 }
@@ -192,6 +193,7 @@ Model.prototype.validate = function(){
 // note: assumes coerced instance
 Model.prototype.build = function(instance){
   this._properties = {};
+  this.resetErrors();
   if (!instance) return this;
   for (var p in instance){
     this._properties[p] = builtItem.call(this,p,instance[p],instance);
@@ -316,6 +318,7 @@ Collection.prototype.validate = function(){
 // note: assumed coerced instance
 Collection.prototype.build = function(instance){
   this._items = [];
+  this.resetErrors();
   if (!instance) return this;
   for (var i=0;i<instance.length;++i){
     var item = builtItem.call(this,i,instance[i],instance) 
