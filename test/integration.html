@@ -74,7 +74,7 @@
 
     <script id="errTemplate" type="text/plain">
       <ul class="error" data-errors="{errorProperty}" data-visible="hasErrors">
-        <div>{predicate} <span class="expected" data-visible="expected">({expected})</span></div>
+        <div>{predicate} <span class="expected" data-visible="expected">(expected {expected})</span></div>
       </ul>
     </script>
 
@@ -94,9 +94,6 @@
         , Schema = core.Schema
 
       Schema.use(valid);
-      valid.addFormat('non-null', 
-                      require('ericgj-json-schema-valid/format/non-null')
-                     );
 
       // these would be require'd in a real example
       var formTmpl = document.getElementById('formTemplate').innerHTML
