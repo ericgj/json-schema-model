@@ -14,7 +14,7 @@
   - object- and items- level validation for collections
   - input coercion (data type + defaults)
   - extendable with custom model classes
-  - full support for any JSON Schema including conditions (anyOf, allOf, oneOf)
+  - full support for any JSON Schema including combination conditions (anyOf, allOf, oneOf)
   - access to descriptive schema data (description, name, links, etc) (planned)
   - interface for persistence layer (planned)
 
@@ -33,7 +33,7 @@
 
 
 [json-schema]: http://json-schema.org
-[component-reactive]: https://github.com/component/reactive
+[reactive]: https://github.com/component/reactive
 [rivets]: https://github.com/mikeric/rivets
-[example]: ericgj/json-schema-model/blob/master/test/integration.html
+[example]: test/integration.html
 
