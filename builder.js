@@ -351,8 +351,9 @@ Collection.prototype.eachObject = function(fn){
 function builtItem(prop,value,instance){
   instance = instance || this.toObject();
   var schema = this.schema()
-    , corr = schema.bind(instance)
-    , sub = corr.subschema(prop)
+    , corr = schema.bind(instance).coerce()
+    , instance = corr.instance || instance
+    , sub = schema.bind(instance).subschema(prop)
   return Builder(sub).build(value);
 }
 

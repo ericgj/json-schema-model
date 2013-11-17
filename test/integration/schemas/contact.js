@@ -2,11 +2,12 @@
 window.jsonSchemas = window.jsonSchemas || {};
 window.jsonSchemas['contact'] = {
   "type": "object",
-  "required": ["name","email"],
+  "default": { "name": null, "email": null, "phone": null },
+  "required": ["name", "email"],
   "properties": {
-    "name":  { "minLength": 2 },
-    "email": { "format": "email" },
-    "phone": { "pattern": "^[0-9\-\.\s\(\)]+$" }
+    "name":  { "format": "non-null", "minLength": 2 },
+    "email": { "type": "string", "default": null, "format": "email" },
+    "phone": { "type": ["string","null"], "pattern": "^[0-9\-\.\s\(\)]+$" }
   }
 }
 
