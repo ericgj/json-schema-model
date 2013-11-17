@@ -62,7 +62,7 @@ Accessor.prototype.schema = function(){
 }
 
 Accessor.prototype.get = function(){
-  return this.toObject();  
+  return this.toJSON();  
 }
 
 Accessor.prototype.set = function(instance){
@@ -92,7 +92,7 @@ Accessor.prototype.build = function(instance){
   return this;
 }
 
-Accessor.prototype.toObject = function(){
+Accessor.prototype.toJSON = function(){
   return this._instance;
 }
 
@@ -119,7 +119,7 @@ Model.prototype.save = function(){
 
 Model.prototype.get = function(prop){
   if (arguments.length == 0){
-    return this.toObject();
+    return this.toJSON();
   } else {
     var prop = this._properties[prop]
     return prop && prop.get();
@@ -203,7 +203,7 @@ Model.prototype.build = function(instance){
   return this;
 }
 
-Model.prototype.toObject = function(){
+Model.prototype.toJSON = function(){
   var ret = {};
   for (var p in this._properties) ret[p] = this.get(p);
   return ret;
@@ -246,7 +246,7 @@ Collection.prototype.has = function(i){
 
 Collection.prototype.get = function(i)  { 
   if (arguments == 0){
-    return this.toObject();
+    return this.toJSON();
   } else {
     var item = this._items[i]
     return item && item.get(); 
@@ -330,7 +330,7 @@ Collection.prototype.build = function(instance){
   return this;
 }
 
-Collection.prototype.toObject = function(){
+Collection.prototype.toJSON = function(){
   var ret = [];
   this.eachObject( function(obj){
     ret.push( obj )
@@ -349,7 +349,7 @@ Collection.prototype.eachObject = function(fn){
 
 // note used by both Model and Collection
 function builtItem(prop,value,instance){
-  instance = instance || this.toObject();
+  instance = instance || this.toJSON();
   var schema = this.schema()
     , corr = schema.bind(instance).coerce()
     , instance = corr.instance || instance
@@ -372,7 +372,7 @@ function validate(){
 
 function toCorrelation(){
   var schema = this.schema()
-    , instance = this.toObject()
+    , instance = this.toJSON()
     , corr = schema.bind(instance)
   return corr
 }

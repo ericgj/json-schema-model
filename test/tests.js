@@ -139,10 +139,18 @@ describe('json-schema-model', function(){
 
     it('should allow invalid set property', function(){
       var subject = buildFixture('modelset','simple','simple')
+      subject.set('one', '12345678901');  // make invalid
+      console.log('model set invalid: %o', subject);
+      assert(subject.get('one') == '12345678901');
+      assert(subject.validate() == false);
+    })
+
+    it('should allow invalid set property, coercing type to valid', function(){
+      var subject = buildFixture('modelset','simple','simple')
       subject.set('one', 11);
       console.log('model set invalid: %o', subject);
-      assert(subject.get('one') == 11);
-      assert(subject.validate() == false);
+      assert(subject.get('one') == '11');
+      assert(subject.validate() == true);
     })
 
     it('should rebuild itself if no property specified', function(){
@@ -158,7 +166,7 @@ describe('json-schema-model', function(){
       var subject = buildFixture('modelset','combotop','combo1')
       subject.set(fixtures.modelset.instance.combo2);
       console.log('model rebuild combo: %o', subject);
-      assert.deepEqual(subject.toObject(), fixtures.modelset.instance.combo2);
+      assert.deepEqual(subject.toJSON(), fixtures.modelset.instance.combo2);
       assert(subject.validate() == true);
     })
 
@@ -166,7 +174,7 @@ describe('json-schema-model', function(){
       var subject = buildFixture('modelset','combotop','combo1')
       subject.set(fixtures.modelset.instance.comboinvalid);
       console.log('model rebuild invalid: %o', subject);
-      assert.deepEqual(subject.toObject(), fixtures.modelset.instance.comboinvalid);
+      assert.deepEqual(subject.toJSON(), fixtures.modelset.instance.comboinvalid);
       assert(subject.validate() == false);
     })
 
@@ -192,7 +200,7 @@ describe('json-schema-model', function(){
     it('should have errors when called a second time and not valid', function(){
       var subject = buildFixture('validate','simple','valid')
       subject.validate();
-      subject.set('one', 111); // make invalid
+      subject.set('one', '12345678901'); // make invalid
       assert(subject.validate() == false);
       assert(subject.errors().length > 0);
     })
@@ -298,7 +306,7 @@ fixtures.obj.schema = {};
 fixtures.obj.schema.simple = {
   type: 'object',
   properties: {
-    one: { type: 'string' },
+    one: { type: 'string', maxLength: 10 },
     two: { type: 'number' },
     three: { type: 'boolean' }
   }
