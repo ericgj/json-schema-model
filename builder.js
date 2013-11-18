@@ -57,8 +57,13 @@ function Accessor(schema){
   return this;
 }
 
-Accessor.prototype.schema = function(){
-  return this._schema;
+Accessor.prototype.schema = function(schema){
+  if (schema === undefined){
+    return this._schema;
+  } else {
+    this._schema = schema;
+    return this;
+  }
 }
 
 Accessor.prototype.get = function(){
@@ -109,12 +114,22 @@ function Model(schema){
 Emitter(Model);
 Model.prototype = new Emitter();
 
-Model.prototype.schema = function(){
-  return this._schema;
+Model.use = function(plugin){
+  plugin(this);
+  return this;
 }
 
-Model.prototype.save = function(){
-  if (this.validate()) this.emit('save');
+Model.prototype.schema = function(schema){
+  if (schema === undefined){
+    return this._schema;
+  } else {
+    this._schema = schema;
+    return this;
+  }
+}
+
+Model.prototype.has = function(prop){
+  return has.call(this._properties,prop);
 }
 
 Model.prototype.get = function(prop){
@@ -182,10 +197,6 @@ Model.prototype.resetErrors = function(){
   }
 }
 
-Model.prototype.has = function(prop){
-  return has.call(this._properties,prop);
-}
-
 Model.prototype.validate = function(){
   return validate.call(this);
 }
@@ -236,8 +247,13 @@ Collection.prototype.__iterate__ = function(){
   }
 }
 
-Collection.prototype.schema = function(){
-  return this._schema;
+Collection.prototype.schema = function(schema){
+  if (schema === undefined){
+    return this._schema;
+  } else {
+    this._schema = schema;
+    return this;
+  }
 }
 
 Collection.prototype.has = function(i){

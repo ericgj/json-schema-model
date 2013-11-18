@@ -4,11 +4,14 @@ var isBrowser = require('is-browser')
   , assert = require('assert') 
   , core  = isBrowser ? require('json-schema-core') : require('json-schema-core-component')
   , Valid  = isBrowser ? require('json-schema-valid') : require('json-schema-valid-component')
-  , Builder = isBrowser ? require('json-schema-model') : require('json-schema-model-component')
+  , Hyper  = isBrowser ? require('json-schema-hyper') : require('json-schema-hyper-component')
+  , Builder = isBrowser ? require('json-schema-model') : require('../index')
+  , Sync = isBrowser ? require('json-schema-model/sync') : require('../sync')
   , Schema = core.Schema
   , has = hasOwnProperty
 
 Schema.use(Valid);
+Schema.use(Hyper);
 
 var fixtures = {};
 
@@ -301,6 +304,115 @@ describe('json-schema-model', function(){
 })
 
 
+var agent = DummyAgent();
+var sync = Sync(agent);
+Builder.Model.use(Sync.plugin(sync));  // ugly
+
+describe('json-schema-model sync unit tests', function(){
+
+  describe('refresh', function(){
+    beforeEach( function(){
+      agent.reset();
+    });
+
+    it('should read edit-form link, and refresh model instance', function(done){
+      var subject = buildFixture('sync','refresh-all','simple')
+        , expected = subject.schema().bind(subject.toJSON())
+        , expectedVal = subject.get('one')
+      subject.set('one', '2');  // change
+      subject.set('two', 3);    // change
+      var link = expected.rel('edit-form')
+      assert(link);
+      agent.expect(link,null,expected);
+      subject.refresh( function(err,_){
+        console.log('sync refresh edit-form: %o', subject);
+        assert(expectedVal == subject.get('one'));  // reverted
+        assert(!subject.has('two'));  // reverted
+        done();
+      });
+    })
+
+    it('should read self link if edit-form link not given, and refresh model instance', function(done){
+      var subject = buildFixture('sync','refresh-self','simple')
+        , expected = subject.schema().bind(subject.toJSON())
+        , expectedVal = subject.get('one')
+      subject.set('one', '2');  // change
+      subject.set('two', 3);    // change
+      var link = expected.rel('self')
+      assert(link);
+      agent.expect(link,null,expected);
+      subject.refresh( function(err,_){
+        console.log('sync refresh self: %o', subject);
+        assert(expectedVal == subject.get('one'));  // reverted
+        assert(!subject.has('two'));  // reverted
+        done();
+      });
+    })
+
+    it('should read full link if self link not given, and refresh model instance', function(done){
+      var subject = buildFixture('sync','refresh-full','simple')
+        , expected = subject.schema().bind(subject.toJSON())
+        , expectedVal = subject.get('one')
+      subject.set('one', '2');  // change
+      subject.set('two', 3);    // change
+      var link = expected.rel('full')
+      assert(link);
+      agent.expect(link,null,expected);
+      subject.refresh( function(err,_){
+        console.log('sync refresh full: %o', subject);
+        assert(expectedVal == subject.get('one'));  // reverted
+        assert(!subject.has('two'));  // reverted
+        done();
+      });
+    })
+
+  })
+
+  describe('create', function(){
+    it('should have some integration tests');
+  })
+
+  describe('update', function(){
+    it('should have some integration tests');
+  })
+
+  describe('save', function(){
+    it('should have some integration tests');
+  })
+
+  describe('del', function(){
+    it('should have some integration tests');
+  })
+
+})
+
+
+function DummyAgent(){
+  if (!(this instanceof DummyAgent)) return new DummyAgent;
+  this._expects = [];
+  return this;
+}
+
+DummyAgent.prototype.expect = function(link,err,result){
+  err = err || null;
+  result = result || new Schema().bind({});
+  this._expects.push([link,err,result]);
+}
+
+DummyAgent.prototype.reset = function(){
+  this._expects = [];
+}
+
+DummyAgent.prototype.follow = function(link, fn){
+  console.log(link.attribute('method') + ' ' + link.attribute('href'));
+  var nxt = this._expects[0];
+  assert(nxt[0].attribute('href') == link.attribute('href'));
+  assert(nxt[0].attribute('method') == link.attribute('method'));
+  this._expects.shift();
+  fn(nxt[1],nxt[2]);
+}
+
+
 fixtures.obj = {};
 fixtures.obj.schema = {};
 fixtures.obj.schema.simple = {
@@ -442,5 +554,34 @@ fixtures.validate.instance.invalid = fixtures.obj.instance.invalid;
 fixtures.validate.schema.array = fixtures.array.schema.simple;
 fixtures.validate.instance.arrayvalid = fixtures.array.instance.valid ;
 fixtures.validate.instance.arrayinvalid = fixtures.array.instance.invalid ;
+
+
+fixtures.sync = {};
+fixtures.sync.schema = {};
+fixtures.sync.schema['refresh-all'] = {
+  links: [
+    { rel: 'full', href: 'http://full' },
+    { rel: 'self', href: 'http://self' },
+    { rel: 'edit-form', href: 'http://edit-form' }
+  ],
+  properties: fixtures.obj.schema.simple.properties
+}
+fixtures.sync.schema['refresh-self'] = {
+  links: [
+    { rel: 'self', href: 'http://self' }
+  ],
+  properties: fixtures.obj.schema.simple.properties
+}
+fixtures.sync.schema['refresh-full'] = {
+  links: [
+    { rel: 'full', href: 'http://full' }
+  ],
+  properties: fixtures.obj.schema.simple.properties
+}
+
+fixtures.sync.instance = {};
+fixtures.sync.instance.simple = {
+  one: '1'
+}
 
 

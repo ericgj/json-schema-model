@@ -17,12 +17,15 @@
     "component/classes": "*",
     "yields/empty": "*",
     "ericgj/json-schema-core": "*",
-    "ericgj/json-schema-valid": "*"
+    "ericgj/json-schema-valid": "*",
+    "ericgj/json-schema-hyper": "*",
+    "ericgj/json-schema-agent": "*"
   },
   "license": "MIT",
   "main": "index.js",
   "scripts": [
     "index.js",
-    "builder.js"
+    "builder.js",
+    "sync.js"
   ]
 }
