@@ -8,7 +8,7 @@
 
   Models emit `change` and other 'lifecycle' events, suitable for integration
   with reactive data-binding libraries (e.g., [component-reactive][reactive]
-  or [rivets][rivets].
+  or [rivets][rivets].)
 
   (For an example use in form validation, see
   [test/integration.html][example].)
