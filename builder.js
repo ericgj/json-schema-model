@@ -3,6 +3,7 @@
 var type = require('type')
   , Enumerable = require('enumerable')
   , Emitter = require('emitter')
+  , Sync = require('./sync')
   , has = hasOwnProperty
 
 module.exports = Builder;
@@ -23,6 +24,13 @@ Builder.getType = function(type){
   return this._types[type];
 }
 
+// sugar...
+Builder.sync = function(sync){
+  for (var t in this._types){
+    var klass = this._types[t]
+    if (klass.use) klass.use(Sync.plugin(sync));
+  }
+}
 
 Builder.prototype.build = function(instance){
   var schema = this._schema
@@ -225,6 +233,11 @@ function Collection(schema){
   if (!(this instanceof Collection)) return new Collection(schema);
   this._schema = schema;
   this._items = [];
+  return this;
+}
+
+Collection.use = function(plugin){
+  plugin(this);
   return this;
 }
 

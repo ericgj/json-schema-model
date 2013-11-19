@@ -306,7 +306,15 @@ describe('json-schema-model', function(){
 
 var agent = DummyAgent();
 var sync = Sync(agent);
-Builder.Model.use(Sync.plugin(sync));  // ugly
+Builder.sync(sync);
+
+Builder.Model.on('refreshed', function(model){
+  console.log('  <- model refreshed: %o', model.toJSON());
+})
+
+Builder.Model.on('refreshing', function(model){
+  console.log('  -> model refreshing: %o', model.toJSON());
+})
 
 describe('json-schema-model sync unit tests', function(){
 

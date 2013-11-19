@@ -4,7 +4,7 @@ var type = require('type')
 
 module.exports = Sync;
 
-/* 
+/** 
  * A REST interface for models using JSON Schema hypermedia conventions.
  *
  * There are two usage forms, a _basic_ usage where links are supplied
@@ -42,7 +42,7 @@ module.exports = Sync;
  * their schemas, so you may also be able to access them with the 'plugin' 
  * usage.
  *
- * @param {Agent} agent
+ * @param {Agent} agent  instance of json-schema-agent or equivalent
  *
  */
 function Sync(agent){
@@ -52,14 +52,14 @@ function Sync(agent){
   return this;
 }
 
-/* 
+/** 
  * links setter / parser
  * passed links can be 
  *  (1) a raw (unparsed) links array;
  *  (2) a raw links object, e.g. { links: [ ] }
  *  (3) a links node of schema (already parsed)
  *
- * @params {Array|Object|Links} links
+ * @param {Array|Object|Links} links
  *
  */
 Sync.prototype.links = function(links){
@@ -67,15 +67,15 @@ Sync.prototype.links = function(links){
   return this;
 }
 
-/*
+/**
  * Follow given link relation, or first of given link relations,
  * build and yield a new model from the fetched correlation.
  *
  * If no rel given, by default use 'instances'.
  *
- * @params {String|Array} rel
- * @params {Function} builder
- * @params {Function} fn
+ * @param {String|Array} [rel='instances']  link rel or array of rels to try
+ * @param {Function}     builder            builder function for model
+ * @param {Function}     fn                 callback(err,model)
  *
  */
 Sync.prototype.read = function(rel, builder, fn){
@@ -93,32 +93,32 @@ Sync.prototype.read = function(rel, builder, fn){
   });
 }
 
-/* 
+/** 
  * Read a 'default' instance from 'create-form', 'new', or 'default' 
  * link relation.
  *
- * @params {Function} builder
- * @params {Function} fn
+ * @param {Function} builder
+ * @param {Function} fn       callback(err,model)
  *
  */
 Sync.prototype.readDefault = function(builder,fn){
   this.read(['create-form','new','default'], builder, fn);
 }
 
-/*
+/**
  * Read and refresh the given model from 'edit-form', 'self', or 'full'
  * link relation. Note that the given model is mutated rather than
  * a new model being instanciated.
  *
- * @params {Object} model
- * @params {Function} fn
+ * @param {Object}   model
+ * @param {Function} fn     callback(err,model)
  *
  */
 Sync.prototype.refresh = function(model,fn){
   this.read(['edit-form','self','full'], model.schema.bind(model), fn);
 }
 
-/*
+/**
  * Write the given model to the 'create' link relation (typically, a
  * POST). Note that a safer method is `save`, which checks first for
  * an 'edit' or 'update' link relation.
@@ -126,8 +126,8 @@ Sync.prototype.refresh = function(model,fn){
  * Note that application schemas should *NOT* send 'create' link 
  * relations in schemas for existing entities.
  *
- * @params {Object} model
- * @params {Function} fn
+ * @param {Object}   model
+ * @param {Function} fn    callback(err,correlation)
  *
  */
 Sync.prototype.create = function(model,fn){
@@ -137,14 +137,14 @@ Sync.prototype.create = function(model,fn){
   this.agent.follow(link, model.toJSON(), fn);
 }
 
-/*
+/**
  * Write the given model to the 'edit' or 'update' link relation (typically, a
  * PUT). Note that if you do not know whether an entity is new or not, a safer 
  * method is `save`, which first attempts to update, then create if no 'edit'
  * or 'update' link relation is found.
  *
- * @params {Object} model
- * @params {Function} fn
+ * @param {Object}   model
+ * @param {Function} fn     callback(err,correlation)
  *
  */
 Sync.prototype.update = function(model,fn){
@@ -154,11 +154,11 @@ Sync.prototype.update = function(model,fn){
   this.agent.follow(link, model.toJSON(), fn);
 }
 
-/*
+/**
  * Write the given model to the 'edit', 'update', or 'create' link relation. 
  *
- * @params {Object} model
- * @params {Function} fn
+ * @param {Object}   model
+ * @param {Function} fn     callback(err,correlation)
  *
  */
 Sync.prototype.save = function(model,fn){
@@ -168,10 +168,10 @@ Sync.prototype.save = function(model,fn){
   this.agent.follow(link, model.toJSON(), fn);
 }
 
-/* 
+/** 
  * Delete the entity at the 'self', 'full', or 'delete' link relation.
  *
- * @params {Function} fn
+ * @param {Function} fn   callback(err)
  *
  */
 Sync.prototype.del = function(fn){
@@ -181,7 +181,7 @@ Sync.prototype.del = function(fn){
   this.agent.del(link, fn);
 }
 
-/*
+/**
  * Plugin methods for Model, Collection classes.
  * See usage examples above.
  *
@@ -202,30 +202,47 @@ Sync.plugin = function(sync){
 
     target.prototype.refresh = function(fn){
       setModelLinks.call(sync,this);
-      sync.refresh(this,fn);
+      sync.refresh(this, wrap(target,this,'refreshing','refreshed',fn) );
     }
 
     target.prototype.create = function(fn){
       setModelLinks.call(sync,this);
-      sync.create(this,fn);
+      sync.create(this, wrap(target,this,'creating','created',fn) );
     }
 
     target.prototype.update = function(fn){
       setModelLinks.call(sync,this);
-      sync.update(this,fn);
+      sync.update(this, wrap(target,this,'updating','updated',fn) );
     }
 
     target.prototype.save = function(fn){
       setModelLinks.call(sync,this);
-      sync.save(this,fn);
+      sync.save(this, wrap(target,this,'saving','saved',fn) );
     }
 
     target.prototype.del = function(fn){
       setModelLinks.call(sync,this);
-      sync.del(fn);
+      sync.del( wrap(target,this,'deleting','deleted',fn) );
     }
 
   }
+
+  // util
+
+  function wrap(target,model,before,after,fn){
+    if (target.emit) target.emit(before,model);
+    if (model.emit) model.emit(before);
+    
+    return function(err){
+      var args = [].slice.call(arguments,0);
+      fn.apply(undefined,args);
+      if (!err){
+        if (target.emit) target.emit(after,model);
+        if (model.emit) model.emit(after);
+      }
+    }
+  }
+  
 }
 
 
