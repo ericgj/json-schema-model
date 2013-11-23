@@ -2,7 +2,7 @@
 
 var type = require('type')
 
-module.exports = Sync;
+module.exports = IO;
 
 /** 
  * A REST interface for models using JSON Schema hypermedia conventions.
@@ -14,19 +14,19 @@ module.exports = Sync;
  *
  * Basic usage (links supplied externally):
  *
- *    var sync = Sync(agent).links(links);  // note links are _resolved_ links
+ *    var io = IO(agent).links(links);  // note links are _resolved_ links
  *
- *    sync.read(rel, Builder, fn)   // by default, using rel="instances" 
- *    sync.readDefault(Builder, fn) // using rel="create-form" or rel="new" or rel="default"
- *    sync.refresh(model,fn)        // using rel="edit-form" or rel="self" or rel="full"
- *    sync.create(model)            // using rel="create"
- *    sync.update(model)            // using rel="edit" or rel="update"
- *    sync.del()                    // using rel="self" or rel="full" or rel="delete"
+ *    io.read(rel, Builder, fn)   // by default, using rel="instances" 
+ *    io.readDefault(Builder, fn) // using rel="create-form" or rel="new" or rel="default"
+ *    io.refresh(model,fn)        // using rel="edit-form" or rel="self" or rel="full"
+ *    io.create(model)            // using rel="create"
+ *    io.update(model)            // using rel="edit" or rel="update"
+ *    io.del()                    // using rel="self" or rel="full" or rel="delete"
  *
  * Plugin usage (links supplied by model):
  *
- *    var sync = Sync(agent);
- *    Model.use(Sync.plugin(sync));
+ *    var io = IO(agent);
+ *    Model.use(IO.plugin(io));
  *
  *    model.read(rel,fn);
  *    model.readDefault(fn);
@@ -45,8 +45,8 @@ module.exports = Sync;
  * @param {Agent} agent  instance of json-schema-agent or equivalent
  *
  */
-function Sync(agent){
-  if (!(this instanceof Sync)) return new Sync(agent);
+function IO(agent){
+  if (!(this instanceof IO)) return new IO(agent);
   this.agent = agent;
   this._links = undefined;
   return this;
@@ -62,7 +62,7 @@ function Sync(agent){
  * @param {Array|Object|Links} links
  *
  */
-Sync.prototype.links = function(links){
+IO.prototype.links = function(links){
   this._links = parseLinks(links);
   return this;
 }
@@ -78,7 +78,7 @@ Sync.prototype.links = function(links){
  * @param {Function}     fn                 callback(err,model)
  *
  */
-Sync.prototype.read = function(rel, builder, fn){
+IO.prototype.read = function(rel, builder, fn){
   if (arguments.length == 2){
     fn = builder; builder = rel; rel = 'instances'
   }
@@ -101,7 +101,7 @@ Sync.prototype.read = function(rel, builder, fn){
  * @param {Function} fn       callback(err,model)
  *
  */
-Sync.prototype.readDefault = function(builder,fn){
+IO.prototype.readDefault = function(builder,fn){
   this.read(['create-form','new','default'], builder, fn);
 }
 
@@ -114,7 +114,7 @@ Sync.prototype.readDefault = function(builder,fn){
  * @param {Function} fn     callback(err,model)
  *
  */
-Sync.prototype.refresh = function(model,fn){
+IO.prototype.refresh = function(model,fn){
   this.read(['edit-form','self','full'], model.schema.bind(model), fn);
 }
 
@@ -130,7 +130,7 @@ Sync.prototype.refresh = function(model,fn){
  * @param {Function} fn    callback(err,correlation)
  *
  */
-Sync.prototype.create = function(model,fn){
+IO.prototype.create = function(model,fn){
   var link = getLinkRel.call(this,'create');
   if (!link) 
     throw new Error('No create link found, unable to create');
@@ -147,7 +147,7 @@ Sync.prototype.create = function(model,fn){
  * @param {Function} fn     callback(err,correlation)
  *
  */
-Sync.prototype.update = function(model,fn){
+IO.prototype.update = function(model,fn){
   var link = getLinkRel.call(this,'edit','update');
   if (!link) 
     throw new Error('No edit or update link found, unable to update');
@@ -161,7 +161,7 @@ Sync.prototype.update = function(model,fn){
  * @param {Function} fn     callback(err,correlation)
  *
  */
-Sync.prototype.save = function(model,fn){
+IO.prototype.save = function(model,fn){
   var link = getLinkRel.call(this,'edit','update','create');
   if (!link) 
     throw new Error('No edit or update or create link found, unable to save');
@@ -174,7 +174,7 @@ Sync.prototype.save = function(model,fn){
  * @param {Function} fn   callback(err)
  *
  */
-Sync.prototype.del = function(fn){
+IO.prototype.del = function(fn){
   var link = getLinkRel.call(this,'self','full','delete');
   if (!link) 
     throw new Error('No self or full or delete link found, unable to delete');
@@ -186,43 +186,43 @@ Sync.prototype.del = function(fn){
  * See usage examples above.
  *
  */
-Sync.plugin = function(sync){
+IO.plugin = function(IO){
   
   return function(target){
 
     target.prototype.read = function(rel,fn){
-      setModelLinks.call(sync,this);
-      sync.read(rel, target, fn);
+      setModelLinks.call(IO,this);
+      IO.read(rel, target, fn);
     }
 
     target.prototype.readDefault = function(fn){
-      setModelLinks.call(sync,this);
-      sync.readDefault(target, fn);
+      setModelLinks.call(IO,this);
+      IO.readDefault(target, fn);
     }
 
     target.prototype.refresh = function(fn){
-      setModelLinks.call(sync,this);
-      sync.refresh(this, wrap(target,this,'refreshing','refreshed',fn) );
+      setModelLinks.call(IO,this);
+      IO.refresh(this, wrap(target,this,'refreshing','refreshed',fn) );
     }
 
     target.prototype.create = function(fn){
-      setModelLinks.call(sync,this);
-      sync.create(this, wrap(target,this,'creating','created',fn) );
+      setModelLinks.call(IO,this);
+      IO.create(this, wrap(target,this,'creating','created',fn) );
     }
 
     target.prototype.update = function(fn){
-      setModelLinks.call(sync,this);
-      sync.update(this, wrap(target,this,'updating','updated',fn) );
+      setModelLinks.call(IO,this);
+      IO.update(this, wrap(target,this,'updating','updated',fn) );
     }
 
     target.prototype.save = function(fn){
-      setModelLinks.call(sync,this);
-      sync.save(this, wrap(target,this,'saving','saved',fn) );
+      setModelLinks.call(IO,this);
+      IO.save(this, wrap(target,this,'saving','saved',fn) );
     }
 
     target.prototype.del = function(fn){
-      setModelLinks.call(sync,this);
-      sync.del( wrap(target,this,'deleting','deleted',fn) );
+      setModelLinks.call(IO,this);
+      IO.del( wrap(target,this,'deleting','deleted',fn) );
     }
 
   }

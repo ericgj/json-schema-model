@@ -3,7 +3,7 @@
 var type = require('type')
   , Enumerable = require('enumerable')
   , Emitter = require('emitter')
-  , Sync = require('./sync')
+  , IO = require('./io')
   , has = hasOwnProperty
 
 module.exports = Builder;
@@ -25,10 +25,10 @@ Builder.getType = function(type){
 }
 
 // sugar...
-Builder.sync = function(sync){
+Builder.io = function(io){
   for (var t in this._types){
     var klass = this._types[t]
-    if (klass.use) klass.use(Sync.plugin(sync));
+    if (klass.use) klass.use(IO.plugin(io));
   }
 }
 

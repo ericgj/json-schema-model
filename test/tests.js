@@ -6,7 +6,7 @@ var isBrowser = require('is-browser')
   , Valid  = isBrowser ? require('json-schema-valid') : require('json-schema-valid-component')
   , Hyper  = isBrowser ? require('json-schema-hyper') : require('json-schema-hyper-component')
   , Builder = isBrowser ? require('json-schema-model') : require('../index')
-  , Sync = isBrowser ? require('json-schema-model/sync') : require('../sync')
+  , IO = isBrowser ? require('json-schema-model/io') : require('../io')
   , Schema = core.Schema
   , has = hasOwnProperty
 
@@ -305,8 +305,8 @@ describe('json-schema-model', function(){
 
 
 var agent = DummyAgent();
-var sync = Sync(agent);
-Builder.sync(sync);
+var io = IO(agent);
+Builder.io(io);
 
 Builder.Model.on('refreshed', function(model){
   console.log('  <- model refreshed: %o', model.toJSON());
@@ -316,7 +316,7 @@ Builder.Model.on('refreshing', function(model){
   console.log('  -> model refreshing: %o', model.toJSON());
 })
 
-describe('json-schema-model sync unit tests', function(){
+describe('json-schema-model IO unit tests', function(){
 
   describe('refresh', function(){
     beforeEach( function(){
@@ -324,7 +324,7 @@ describe('json-schema-model sync unit tests', function(){
     });
 
     it('should read edit-form link, and refresh model instance', function(done){
-      var subject = buildFixture('sync','refresh-all','simple')
+      var subject = buildFixture('io','refresh-all','simple')
         , expected = subject.schema().bind(subject.toJSON())
         , expectedVal = subject.get('one')
       subject.set('one', '2');  // change
@@ -333,7 +333,7 @@ describe('json-schema-model sync unit tests', function(){
       assert(link);
       agent.expect(link,null,expected);
       subject.refresh( function(err,_){
-        console.log('sync refresh edit-form: %o', subject);
+        console.log('io refresh edit-form: %o', subject);
         assert(expectedVal == subject.get('one'));  // reverted
         assert(!subject.has('two'));  // reverted
         done();
@@ -341,7 +341,7 @@ describe('json-schema-model sync unit tests', function(){
     })
 
     it('should read self link if edit-form link not given, and refresh model instance', function(done){
-      var subject = buildFixture('sync','refresh-self','simple')
+      var subject = buildFixture('io','refresh-self','simple')
         , expected = subject.schema().bind(subject.toJSON())
         , expectedVal = subject.get('one')
       subject.set('one', '2');  // change
@@ -350,7 +350,7 @@ describe('json-schema-model sync unit tests', function(){
       assert(link);
       agent.expect(link,null,expected);
       subject.refresh( function(err,_){
-        console.log('sync refresh self: %o', subject);
+        console.log('io refresh self: %o', subject);
         assert(expectedVal == subject.get('one'));  // reverted
         assert(!subject.has('two'));  // reverted
         done();
@@ -358,7 +358,7 @@ describe('json-schema-model sync unit tests', function(){
     })
 
     it('should read full link if self link not given, and refresh model instance', function(done){
-      var subject = buildFixture('sync','refresh-full','simple')
+      var subject = buildFixture('io','refresh-full','simple')
         , expected = subject.schema().bind(subject.toJSON())
         , expectedVal = subject.get('one')
       subject.set('one', '2');  // change
@@ -367,7 +367,7 @@ describe('json-schema-model sync unit tests', function(){
       assert(link);
       agent.expect(link,null,expected);
       subject.refresh( function(err,_){
-        console.log('sync refresh full: %o', subject);
+        console.log('io refresh full: %o', subject);
         assert(expectedVal == subject.get('one'));  // reverted
         assert(!subject.has('two'));  // reverted
         done();
@@ -564,9 +564,9 @@ fixtures.validate.instance.arrayvalid = fixtures.array.instance.valid ;
 fixtures.validate.instance.arrayinvalid = fixtures.array.instance.invalid ;
 
 
-fixtures.sync = {};
-fixtures.sync.schema = {};
-fixtures.sync.schema['refresh-all'] = {
+fixtures.io = {};
+fixtures.io.schema = {};
+fixtures.io.schema['refresh-all'] = {
   links: [
     { rel: 'full', href: 'http://full' },
     { rel: 'self', href: 'http://self' },
@@ -574,21 +574,21 @@ fixtures.sync.schema['refresh-all'] = {
   ],
   properties: fixtures.obj.schema.simple.properties
 }
-fixtures.sync.schema['refresh-self'] = {
+fixtures.io.schema['refresh-self'] = {
   links: [
     { rel: 'self', href: 'http://self' }
   ],
   properties: fixtures.obj.schema.simple.properties
 }
-fixtures.sync.schema['refresh-full'] = {
+fixtures.io.schema['refresh-full'] = {
   links: [
     { rel: 'full', href: 'http://full' }
   ],
   properties: fixtures.obj.schema.simple.properties
 }
 
-fixtures.sync.instance = {};
-fixtures.sync.instance.simple = {
+fixtures.io.instance = {};
+fixtures.io.instance.simple = {
   one: '1'
 }
 

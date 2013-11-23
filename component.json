@@ -26,6 +26,6 @@
   "scripts": [
     "index.js",
     "builder.js",
-    "sync.js"
+    "io.js"
   ]
 }
