@@ -5,14 +5,14 @@ var type = require('type')
 module.exports = IO;
 
 /** 
- * A REST interface for models using JSON Schema hypermedia conventions.
+ * # A REST interface for models using JSON Schema hypermedia conventions.
  *
  * There are two usage forms, a _basic_ usage where links are supplied
  * externally from the models; and a _plugin_ usage, where links are
  * supplied by the model schemas themselves, and where the methods are 
  * bound to the model prototypes.
  *
- * Basic usage (links supplied externally):
+ * ## Basic usage (links supplied externally):
  *
  *    var io = IO(agent).links(links);  // note links are _resolved_ links
  *
@@ -21,9 +21,10 @@ module.exports = IO;
  *    io.refresh(model,fn)        // using rel="edit-form" or rel="self" or rel="full"
  *    io.create(model)            // using rel="create"
  *    io.update(model)            // using rel="edit" or rel="update"
+ *    io.save(model)              // using rel="edit" or rel="update" or rel="create"
  *    io.del()                    // using rel="self" or rel="full" or rel="delete"
  *
- * Plugin usage (links supplied by model):
+ * ## Plugin usage (links supplied by model):
  *
  *    var io = IO(agent);
  *    Model.use(IO.plugin(io));
@@ -33,6 +34,7 @@ module.exports = IO;
  *    model.refresh(fn);    
  *    model.create();  
  *    model.update();  
+ *    model.save();
  *    model.del();     
  *
  * Typically, the 'factory' methods `read` and `readDefault` (which don't need
@@ -41,6 +43,21 @@ module.exports = IO;
  * organized in your application, particular models may also have these links in
  * their schemas, so you may also be able to access them with the 'plugin' 
  * usage.
+ *
+ * ## Customizing link semantics
+ *
+ * The default link relations used for each action are listed above. They were
+ * chosen on the principle of trying IANA standard link relations first
+ * (cf. http://www.iana.org/assignments/link-relations/link-relations.html ).
+ * However, you can easily override these with your own conventions.
+ *
+ *    IO.setRels('update','update');  // force update to use rel="update" 
+ *
+ *    IO.setRels({ 
+ *      'read': ['self','full'], 
+ *      'readDefault': 'new' 
+ *    });                             // set multiple
+ *
  *
  * @param {Agent} agent  instance of json-schema-agent or equivalent
  *
@@ -52,6 +69,34 @@ function IO(agent){
   return this;
 }
 
+IO._rels = {};
+
+/**
+ * Set custom link relation(s) to try for actions.
+ * If one argument passed (object), sets multiple.
+ * 
+ * @param {String|Object} action  single action or object
+ * @param {String|Array}  [rels]  link relation or array of rels
+ *
+ */
+IO.setRel =
+IO.setRels = function(action,rels){
+  if (arguments.length == 1){
+    for (var k in action){
+      this.setRels(k,action[k]);
+    }
+  } else {
+    rels = type(rels)=='array' ? rels : [rels];
+    this._rels[action] = rels
+  }
+  return this;
+}
+
+IO.getRels = function(action){
+  return this._rels[action];
+}
+
+  
 /** 
  * links setter / parser
  * passed links can be 
@@ -71,7 +116,7 @@ IO.prototype.links = function(links){
  * Follow given link relation, or first of given link relations,
  * build and yield a new model from the fetched correlation.
  *
- * If no rel given, by default use 'instances'.
+ * If no rel given, by default use the IO.getRels default. 
  *
  * @param {String|Array} [rel='instances']  link rel or array of rels to try
  * @param {Function}     builder            builder function for model
@@ -80,7 +125,7 @@ IO.prototype.links = function(links){
  */
 IO.prototype.read = function(rel, builder, fn){
   if (arguments.length == 2){
-    fn = builder; builder = rel; rel = 'instances'
+    fn = builder; builder = rel; rel = IO.getRels('read');
   }
   if (type(rel) != 'array') rel = [rel];
   var link = getLinkRel.apply(this,rel);
@@ -94,20 +139,19 @@ IO.prototype.read = function(rel, builder, fn){
 }
 
 /** 
- * Read a 'default' instance from 'create-form', 'new', or 'default' 
- * link relation.
+ * Read a 'default' instance from readDefault link relation.
  *
  * @param {Function} builder
  * @param {Function} fn       callback(err,model)
  *
  */
 IO.prototype.readDefault = function(builder,fn){
-  this.read(['create-form','new','default'], builder, fn);
+  this.read(IO.getRels('readDefault'), builder, fn);
 }
 
 /**
- * Read and refresh the given model from 'edit-form', 'self', or 'full'
- * link relation. Note that the given model is mutated rather than
+ * Read and refresh the given model from refresh link relation.
+ * Note that the given model is mutated rather than
  * a new model being instanciated.
  *
  * @param {Object}   model
@@ -115,7 +159,7 @@ IO.prototype.readDefault = function(builder,fn){
  *
  */
 IO.prototype.refresh = function(model,fn){
-  this.read(['edit-form','self','full'], model.schema.bind(model), fn);
+  this.read(IO.getRels('refresh'), model.schema.bind(model), fn);
 }
 
 /**
@@ -137,11 +181,11 @@ IO.prototype.write = function(rel,obj,fn){
 }
 
 /**
- * Write the given model to the 'create' link relation (typically, a
+ * Write the given model to the create link relation (typically, a
  * POST). Note that a safer method is `save`, which checks first for
- * an 'edit' or 'update' link relation.
+ * an update link relation.
  *
- * Note that application schemas should *NOT* send 'create' link 
+ * Note that application schemas should *NOT* send create link 
  * relations in schemas for existing entities.
  *
  * @param {Object}   model
@@ -149,42 +193,45 @@ IO.prototype.write = function(rel,obj,fn){
  *
  */
 IO.prototype.create = function(model,fn){
-  this.write('create', model.toJSON(), fn);
+  this.write(IO.getRels('create'), model.toJSON(), fn);
 }
 
 /**
- * Write the given model to the 'edit' or 'update' link relation (typically, a
+ * Write the given model to the update link relation (typically, a
  * PUT). Note that if you do not know whether an entity is new or not, a safer 
- * method is `save`, which first attempts to update, then create if no 'edit'
- * or 'update' link relation is found.
+ * method is `save`, which first attempts to update, then create if no 
+ * or update link relation is found.
  *
  * @param {Object}   model
  * @param {Function} fn     callback(err,correlation)
  *
  */
 IO.prototype.update = function(model,fn){
-  this.write(['edit','update'], model.toJSON(), fn);
+  this.write(IO.getRels('update'), model.toJSON(), fn);
 }
 
 /**
- * Write the given model to the 'edit', 'update', or 'create' link relation. 
+ * Write the given model to the update or create link relation. 
  *
  * @param {Object}   model
  * @param {Function} fn     callback(err,correlation)
  *
  */
 IO.prototype.save = function(model,fn){
-  this.write(['edit','update','create'], model.toJSON(), fn);
+  var rels = []; 
+  rels.push.apply(rels,IO.getRels('update'));
+  rels.push.apply(rels,IO.getRels('create'));
+  this.write(rels, model.toJSON(), fn);
 }
 
 /** 
- * Delete the entity at the 'self', 'full', or 'delete' link relation.
+ * Delete the entity at the del link relation.
  *
  * @param {Function} fn   callback(err)
  *
  */
 IO.prototype.del = function(fn){
-  var link = getLinkRel.call(this,'self','full','delete');
+  var link = getLinkRel.call(this,IO.getRels('del'));
   if (!link) 
     throw new Error('No self or full or delete link found, unable to delete');
   this.agent.del(link, fn);
@@ -254,6 +301,16 @@ IO.plugin = function(IO){
   
 }
 
+// set defaults
+
+IO.setRels( {
+  'read':        ['instances'],
+  'readDefault': ['create-form','new','default'],
+  'refresh':     ['edit-form','self','full'],
+  'create':      ['create'],
+  'update':      ['edit','update'],
+  'del':         ['self','full','delete']
+} );
 
 
 // private
