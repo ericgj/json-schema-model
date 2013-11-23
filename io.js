@@ -119,6 +119,24 @@ IO.prototype.refresh = function(model,fn){
 }
 
 /**
+ * Generic write method. Write the given object to the given link relation,
+ * yielding the response (correlation).
+ * If multiple link relations given, the first one that exists is used.
+ *
+ * @param {String|Array} rel          link rel or array of rels to try
+ * @param {Function}     builder      builder function for model
+ * @param {Function}     fn           callback(err,model)
+ *
+ */
+IO.prototype.write = function(rel,obj,fn){
+  if (type(rel) != 'array') rel = [rel];
+  var link = getLinkRel.apply(this,rel);
+  if (!link) 
+    throw new Error('No '+ rel.join(' or ') + ' link found, unable to write');
+  this.agent.follow(link, obj, fn);
+}
+
+/**
  * Write the given model to the 'create' link relation (typically, a
  * POST). Note that a safer method is `save`, which checks first for
  * an 'edit' or 'update' link relation.
@@ -131,10 +149,7 @@ IO.prototype.refresh = function(model,fn){
  *
  */
 IO.prototype.create = function(model,fn){
-  var link = getLinkRel.call(this,'create');
-  if (!link) 
-    throw new Error('No create link found, unable to create');
-  this.agent.follow(link, model.toJSON(), fn);
+  this.write('create', model.toJSON(), fn);
 }
 
 /**
@@ -148,10 +163,7 @@ IO.prototype.create = function(model,fn){
  *
  */
 IO.prototype.update = function(model,fn){
-  var link = getLinkRel.call(this,'edit','update');
-  if (!link) 
-    throw new Error('No edit or update link found, unable to update');
-  this.agent.follow(link, model.toJSON(), fn);
+  this.write(['edit','update'], model.toJSON(), fn);
 }
 
 /**
@@ -162,10 +174,7 @@ IO.prototype.update = function(model,fn){
  *
  */
 IO.prototype.save = function(model,fn){
-  var link = getLinkRel.call(this,'edit','update','create');
-  if (!link) 
-    throw new Error('No edit or update or create link found, unable to save');
-  this.agent.follow(link, model.toJSON(), fn);
+  this.write(['edit','update','create'], model.toJSON(), fn);
 }
 
 /** 

@@ -323,6 +323,8 @@ describe('json-schema-model IO unit tests', function(){
       agent.reset();
     });
 
+    it('should have some integration tests');
+
     it('should read edit-form link, and refresh model instance', function(done){
       var subject = buildFixture('io','refresh-all','simple')
         , expected = subject.schema().bind(subject.toJSON())
@@ -378,6 +380,17 @@ describe('json-schema-model IO unit tests', function(){
 
   describe('create', function(){
     it('should have some integration tests');
+    
+    it('should follow create link without error', function(done){
+      var subject = buildFixture('io','create','simple')
+        , expected = subject.schema().bind(subject.toJSON())
+      var link = expected.rel('create')
+      assert(link);
+      agent.expect(link,null);
+      subject.create( function(err,_){
+        done();
+      });
+    })
   })
 
   describe('update', function(){
@@ -411,7 +424,10 @@ DummyAgent.prototype.reset = function(){
   this._expects = [];
 }
 
-DummyAgent.prototype.follow = function(link, fn){
+DummyAgent.prototype.follow = function(link, obj, fn){
+  if (arguments.length == 2){
+    fn = obj; obj = undefined;
+  }
   console.log(link.attribute('method') + ' ' + link.attribute('href'));
   var nxt = this._expects[0];
   assert(nxt[0].attribute('href') == link.attribute('href'));
@@ -586,6 +602,14 @@ fixtures.io.schema['refresh-full'] = {
   ],
   properties: fixtures.obj.schema.simple.properties
 }
+
+fixtures.io.schema['create'] = {
+  links: [
+    { rel: 'create', href: 'http://create' }
+  ]
+}
+
+
 
 fixtures.io.instance = {};
 fixtures.io.instance.simple = {
