@@ -16,9 +16,10 @@ module.exports = IO;
  *
  *    var io = IO(agent).links(links);  // note links are _resolved_ links
  *
- *    io.read(rel, Builder, fn)   // by default, using rel="instances" 
+ *    io.read(rel, Builder, fn)   // using given rel(s), or by default, using rel="instances" 
  *    io.readDefault(Builder, fn) // using rel="create-form" or rel="new" or rel="default"
  *    io.refresh(model,fn)        // using rel="edit-form" or rel="self" or rel="full"
+ *    io.write(rel, obj, fn)      // using given rel(s)
  *    io.create(model)            // using rel="create"
  *    io.update(model)            // using rel="edit" or rel="update"
  *    io.save(model)              // using rel="edit" or rel="update" or rel="create"
@@ -32,6 +33,7 @@ module.exports = IO;
  *    model.read(rel,fn);
  *    model.readDefault(fn);
  *    model.refresh(fn);    
+ *    model.write(rel,fn);
  *    model.create();  
  *    model.update();  
  *    model.save();
@@ -167,8 +169,11 @@ IO.prototype.refresh = function(model,fn){
  * yielding the response (correlation).
  * If multiple link relations given, the first one that exists is used.
  *
+ * Note that unlike `create`, `update`, and `save` methods, `write` should be 
+ * given a plain object rather than a model object.
+ *
  * @param {String|Array} rel          link rel or array of rels to try
- * @param {Function}     builder      builder function for model
+ * @param {Object}       obj          object to serialize
  * @param {Function}     fn           callback(err,model)
  *
  */
@@ -259,6 +264,11 @@ IO.plugin = function(IO){
     target.prototype.refresh = function(fn){
       setModelLinks.call(IO,this);
       IO.refresh(this, wrap(target,this,'refreshing','refreshed',fn) );
+    }
+
+    target.prototype.write = function(rel,fn){
+      setModelLinks.call(IO,this);
+      IO.write(rel, this.toJSON(), fn);
     }
 
     target.prototype.create = function(fn){
