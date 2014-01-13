@@ -34,7 +34,7 @@
 
 ## API
 
-Coming soon
+Coming soon, for now check [test/integration.html][example] and [test/tests.js][tests].
    
 
 ## License
@@ -46,5 +46,6 @@ Coming soon
 [reactive]: https://github.com/component/reactive
 [rivets]: https://github.com/mikeric/rivets
 [example]: test/integration.html
+[tests]: test/tests.js
 [sync]: sync.js
 
