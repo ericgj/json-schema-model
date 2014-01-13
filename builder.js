@@ -3,7 +3,6 @@
 var type = require('type')
   , Enumerable = require('enumerable')
   , Emitter = require('emitter')
-  , IO = require('./io')
   , has = hasOwnProperty
 
 module.exports = Builder;
@@ -22,14 +21,6 @@ Builder.addType = function(type,klass){
 
 Builder.getType = function(type){
   return this._types[type];
-}
-
-// sugar...
-Builder.io = function(io){
-  for (var t in this._types){
-    var klass = this._types[t]
-    if (klass.use) klass.use(IO.plugin(io));
-  }
 }
 
 Builder.prototype.build = function(instance){

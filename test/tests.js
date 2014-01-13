@@ -5,8 +5,9 @@ var isBrowser = require('is-browser')
   , core  = isBrowser ? require('json-schema-core') : require('json-schema-core-component')
   , Valid  = isBrowser ? require('json-schema-valid') : require('json-schema-valid-component')
   , Hyper  = isBrowser ? require('json-schema-hyper') : require('json-schema-hyper-component')
-  , Builder = isBrowser ? require('json-schema-model') : require('../index')
-  , IO = isBrowser ? require('json-schema-model/io') : require('../io')
+  , model = isBrowser ? require('json-schema-model') : require('../index')
+  , Builder = model.Builder
+  , IO = model.IO 
   , Schema = core.Schema
   , has = hasOwnProperty
 

@@ -244,51 +244,54 @@ IO.prototype.del = function(fn){
 
 /**
  * Plugin methods for Model, Collection classes.
+ * Pass in build IO instance, e.g. 
+ *    var io = IO(agent);
+ *    Model.use(IO.plugin(io));
  * See usage examples above.
  *
  */
-IO.plugin = function(IO){
+IO.plugin = function(io){
   
   return function(target){
 
     target.prototype.read = function(rel,fn){
-      setModelLinks.call(IO,this);
-      IO.read(rel, target, fn);
+      setModelLinks.call(io,this);
+      io.read(rel, target, fn);
     }
 
     target.prototype.readDefault = function(fn){
-      setModelLinks.call(IO,this);
-      IO.readDefault(target, fn);
+      setModelLinks.call(io,this);
+      io.readDefault(target, fn);
     }
 
     target.prototype.refresh = function(fn){
-      setModelLinks.call(IO,this);
-      IO.refresh(this, wrap(target,this,'refreshing','refreshed',fn) );
+      setModelLinks.call(io,this);
+      io.refresh(this, wrap(target,this,'refreshing','refreshed',fn) );
     }
 
     target.prototype.write = function(rel,fn){
-      setModelLinks.call(IO,this);
-      IO.write(rel, this.toJSON(), fn);
+      setModelLinks.call(io,this);
+      io.write(rel, this.toJSON(), fn);
     }
 
     target.prototype.create = function(fn){
-      setModelLinks.call(IO,this);
-      IO.create(this, wrap(target,this,'creating','created',fn) );
+      setModelLinks.call(io,this);
+      io.create(this, wrap(target,this,'creating','created',fn) );
     }
 
     target.prototype.update = function(fn){
-      setModelLinks.call(IO,this);
-      IO.update(this, wrap(target,this,'updating','updated',fn) );
+      setModelLinks.call(io,this);
+      io.update(this, wrap(target,this,'updating','updated',fn) );
     }
 
     target.prototype.save = function(fn){
-      setModelLinks.call(IO,this);
-      IO.save(this, wrap(target,this,'saving','saved',fn) );
+      setModelLinks.call(io,this);
+      io.save(this, wrap(target,this,'saving','saved',fn) );
     }
 
     target.prototype.del = function(fn){
-      setModelLinks.call(IO,this);
-      IO.del( wrap(target,this,'deleting','deleted',fn) );
+      setModelLinks.call(io,this);
+      io.del( wrap(target,this,'deleting','deleted',fn) );
     }
 
   }
