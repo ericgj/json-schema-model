@@ -265,7 +265,7 @@ Collection.prototype.has = function(i){
 }
 
 Collection.prototype.get = function(i)  { 
-  if (arguments == 0){
+  if (arguments.length == 0){
     return this.toJSON();
   } else {
     var item = this._items[i]

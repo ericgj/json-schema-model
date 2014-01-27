@@ -76,6 +76,7 @@ describe('json-schema-model', function(){
       assert.deepEqual(subject.get(0), fixtures.array.instance.valid[0]);
       assert.deepEqual(subject.get(1), fixtures.array.instance.valid[1]);
       assert.deepEqual(subject.get(2), fixtures.array.instance.valid[2]);
+      assert.deepEqual(subject.get(), fixtures.array.instance.valid);
       assert(subject.validate() == true);
     })
 
